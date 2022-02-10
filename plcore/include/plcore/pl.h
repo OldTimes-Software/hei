@@ -24,9 +24,6 @@ support.
 #define PL_VERSION_PATCH 0
 
 // PL_IGNORE_SHARED_HEADERS
-// PL_IGNORE_PLATFORM_HEADERS
-// PL_IGNORE_STD_HEADERS
-// PL_IGNORE_VIDEO_HEADERS
 
 #define PL_INCLUDE_STD_BOOL
 
@@ -78,8 +75,13 @@ typedef char PLPath[ PL_SYSTEM_MAX_PATH ];
 #define PL_MAX_ARRAY_INDEX( a ) ( int ) ( PL_ARRAY_ELEMENTS( a ) - 1 )
 #define PL_INVALID_STRING( a ) ( a == NULL || *a == '\0' )
 
+#define PL_ZERO( DATA, SIZE ) memset( ( DATA ), 0, ( SIZE ) )
+#define PL_ZERO_( DATA )      memset( &( DATA ), 0, sizeof( ( DATA ) ) )
+
 #define PL_STRINGIFY( num ) #num
 #define PL_TOSTRING( A ) PL_STRINGIFY( A )
+
+#define PL_MAGIC_TO_NUM( A, B, C, D ) ( ( ( D ) << 24 ) + ( ( C ) << 16 ) + ( ( B ) << 8 ) + ( A ) )
 
 #define PL_BITFLAG( A, B ) A = ( 1U << B )
 
@@ -189,7 +191,7 @@ PL_EXTERN bool PlHasCommandLineArgument( const char *arg );
 
 //////////////////////////////////////////////////////////////////
 
-PL_EXTERN void pl_crc32( const void *data, size_t n_bytes, uint32_t *crc );
+PL_EXTERN void pl_crc32( const void *data, uint32_t n_bytes, uint32_t *crc );
 
 //////////////////////////////////////////////////////////////////
 

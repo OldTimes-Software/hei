@@ -102,7 +102,7 @@ void PlgGenerateTangentBasis( PLGVertex *vertices, unsigned int numVertices, con
 }
 
 /* software implementation of gouraud shading */
-void plApplyMeshLighting( PLGMesh *mesh, const PLGLight *light, PLVector3 position ) {
+void PlgApplyMeshLighting( PLGMesh *mesh, const PLGLight *light, PLVector3 position ) {
 	PLVector3 distvec = PlSubtractVector3( position, light->position );
 	float distance = ( PlByteToFloat( light->colour.a ) - PlVector3Length( distvec ) ) / 100.f;
 	for ( unsigned int i = 0; i < mesh->num_verts; i++ ) {
@@ -149,11 +149,7 @@ PLGMesh *PlgCreateMeshInit( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, un
                           const unsigned int *indicies, const PLGVertex *vertices ) {
 	plAssert( numVerts );
 
-	PLGMesh *mesh = ( PLGMesh * ) pl_calloc( 1, sizeof( PLGMesh ) );
-	if ( mesh == NULL ) {
-		return NULL;
-	}
-
+	PLGMesh *mesh = ( PLGMesh * ) PlCAllocA( 1, sizeof( PLGMesh ) );
 	mesh->primitive = primitive;
 	mesh->mode = mode;
 
@@ -161,7 +157,7 @@ PLGMesh *PlgCreateMeshInit( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, un
 		if ( mesh->primitive == PLG_MESH_TRIANGLES ) {
 			unsigned int numIndices = numTriangles * 3; /* todo: this is too assumptious... */
 			mesh->maxIndices = numIndices;
-			mesh->indices = pl_calloc( mesh->maxIndices, sizeof( unsigned int ) );
+			mesh->indices = PlCAllocA( mesh->maxIndices, sizeof( unsigned int ) );
 			if ( indicies != NULL ) {
 				memcpy( mesh->indices, indicies, sizeof( unsigned int ) * numIndices );
 				mesh->num_indices = numIndices;
@@ -171,7 +167,7 @@ PLGMesh *PlgCreateMeshInit( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, un
 	}
 
 	mesh->maxVertices = numVerts;
-	mesh->vertices = ( PLGVertex * ) pl_calloc( mesh->maxVertices, sizeof( PLGVertex ) );
+	mesh->vertices = ( PLGVertex * ) PlCAllocA( mesh->maxVertices, sizeof( PLGVertex ) );
 	if ( vertices != NULL ) {
 		memcpy( mesh->vertices, vertices, sizeof( PLGVertex ) * numVerts );
 		mesh->num_verts = numVerts;
@@ -191,9 +187,9 @@ void PlgDestroyMesh( PLGMesh *mesh ) {
 
 	CallGfxFunction( DeleteMesh, mesh );
 
-	pl_free( mesh->vertices );
-	pl_free( mesh->indices );
-	pl_free( mesh );
+	PlFree( mesh->vertices );
+	PlFree( mesh->indices );
+	PlFree( mesh );
 }
 
 void PlgClearMesh( PLGMesh *mesh ) {
@@ -268,7 +264,7 @@ void PlgSetMeshShaderProgram( PLGMesh *mesh, PLGShaderProgram *program ) {
 unsigned int PlgAddMeshVertex( PLGMesh *mesh, PLVector3 position, PLVector3 normal, PLColour colour, PLVector2 st ) {
 	unsigned int vertexIndex = mesh->num_verts++;
 	if ( vertexIndex >= mesh->maxVertices ) {
-		mesh->vertices = pl_realloc( mesh->vertices, ( mesh->maxVertices += 16 ) * sizeof( PLGVertex ) );
+		mesh->vertices = PlReAllocA( mesh->vertices, ( mesh->maxVertices += 16 ) * sizeof( PLGVertex ) );
 	}
 
 	PlgSetMeshVertexPosition( mesh, vertexIndex, position );
@@ -284,7 +280,7 @@ unsigned int PlgAddMeshTriangle( PLGMesh *mesh, unsigned int x, unsigned int y, 
 
 	mesh->num_indices += 3;
 	if ( mesh->num_indices >= mesh->maxIndices ) {
-		mesh->indices = pl_realloc( mesh->indices, ( mesh->maxIndices += 16 ) * sizeof( unsigned int ) );
+		mesh->indices = PlReAllocA( mesh->indices, ( mesh->maxIndices += 16 ) * sizeof( unsigned int ) );
 	}
 
 	mesh->indices[ triangleIndex ] = x;
@@ -315,14 +311,14 @@ void PlgDrawInstancedMesh( PLGMesh *mesh, const PLMatrix4 *transforms, unsigned 
 }
 
 PLCollisionAABB PlgGenerateAabbFromVertices( const PLGVertex *vertices, unsigned int numVertices, bool absolute ) {
-    PLVector3 *vvertices = pl_malloc( sizeof( PLVector3 ) * numVertices );
+    PLVector3 *vvertices = PlMAllocA( sizeof( PLVector3 ) * numVertices );
     for ( unsigned int i = 0; i < numVertices; ++i ) {
         vvertices[ i ] = vertices[ i ].position;
     }
 
     PLCollisionAABB bounds = PlGenerateAabbFromCoords( vvertices, numVertices, absolute );
 
-    pl_free( vvertices );
+	PlFree( vvertices );
 
     return bounds;
 }

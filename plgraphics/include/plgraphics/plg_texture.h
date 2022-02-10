@@ -72,7 +72,6 @@ typedef struct PLGTexture {
 	PLGTextureFilter filter;
 
 	PLImageFormat format;
-	PLDataFormat storage;
 	PLColourFormat pixel;
 } PLGTexture;
 

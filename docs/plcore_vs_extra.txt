@@ -1,0 +1,11 @@
+You're probably wondering what the rule of thumb is
+when it comes to deciding if something is part of
+the core or extras (or some other sub-library).
+
+Basically if it's useful and widely used, then it's
+probably worth adding it to plcore.
+
+An example would be the loader for DOOM's WAD format,
+which was of course originally designed for one game,
+but has since gone on to be used in a large number of
+different games and mods.

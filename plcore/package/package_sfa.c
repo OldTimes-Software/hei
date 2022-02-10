@@ -37,19 +37,19 @@ PLPackage *PlLoadTabPackage( const char *path ) {
 
 	unsigned int num_indices = ( unsigned int ) ( tab_size / sizeof( TabIndex ) );
 
-	TabIndex *indices = pl_malloc( num_indices * sizeof( TabIndex ) );
+	TabIndex *indices = PlMAllocA( num_indices * sizeof( TabIndex ) );
 	size_t ret = PlReadFile( fp, indices, sizeof( TabIndex ), num_indices );
 	PlCloseFile( fp );
 
 	if ( ret != num_indices ) {
-		pl_free( indices );
+		PlFree( indices );
 		return NULL;
 	}
 
 	/* swap be to le */
 	for ( unsigned int i = 0; i < num_indices; ++i ) {
 		if ( indices[ i ].start > tab_size || indices[ i ].end > tab_size ) {
-			pl_free( indices );
+			PlFree( indices );
 			PlReportErrorF( PL_RESULT_FILESIZE, "offset outside of file bounds" );
 			return NULL;
 		}
@@ -66,7 +66,7 @@ PLPackage *PlLoadTabPackage( const char *path ) {
 		index->offset = indices[ i ].start;
 	}
 
-	pl_free( indices );
+	PlFree( indices );
 
 	return package;
 }

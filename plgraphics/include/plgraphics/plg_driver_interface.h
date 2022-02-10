@@ -21,16 +21,17 @@ PL_EXTERN_C
  */
 
 #define PLG_INTERFACE_VERSION_MAJOR 1
-#define PLG_INTERFACE_VERSION_MINOR 0
-#define PLG_INTERFACE_VERSION ( uint16_t[ 2 ] ){ PLG_INTERFACE_VERSION_MAJOR, PLG_INTERFACE_VERSION_MINOR }
+#define PLG_INTERFACE_VERSION_MINOR 1
+#define PLG_INTERFACE_VERSION \
+	( uint16_t[ 2 ] ) { PLG_INTERFACE_VERSION_MAJOR, PLG_INTERFACE_VERSION_MINOR }
 
 typedef struct PLGDriverDescription {
 	uint16_t coreInterfaceVersion[ 2 ];
 	uint16_t graphicsInterfaceVersion[ 2 ];
 
-	const char *identifier; /* 'opengl3' */
+	const char *identifier;          /* 'opengl3' */
 	unsigned int driverVersion[ 3 ]; /* major, minor and patch */
-	const char *description; /* 'OpenGL 3.3 Graphics Driver' */
+	const char *description;         /* 'OpenGL 3.3 Graphics Driver' */
 } PLGDriverDescription;
 
 typedef struct PLGDriverExportTable {
@@ -47,6 +48,8 @@ typedef struct PLGDriverExportTable {
 	void ( *SetTextureUnit )( unsigned int tmu );
 	void ( *SetTextureEnvironmentMode )( PLGTextureEnvironmentMode mode );
 	void ( *SetTextureFlags )( PLGTexture *texture, unsigned int flags );
+
+	const char *( *GetShaderCacheLocation )( void );
 } PLGDriverExportTable;
 
 typedef struct PLGDriverImportTable {
@@ -137,9 +140,9 @@ typedef struct PLGDriverImportTable {
 } PLGDriverImportTable;
 
 #if !defined( PL_COMPILE_PLUGIN )
-#define PLG_DRIVER_QUERY_FUNCTION "QueryGraphicsDriver"
+#	define PLG_DRIVER_QUERY_FUNCTION "QueryGraphicsDriver"
 typedef const PLGDriverDescription *( *PLGDriverQueryFunction )( void );
-#define PLG_DRIVER_INIT_FUNCTION "InitializeGraphicsDriver"
+#	define PLG_DRIVER_INIT_FUNCTION "InitializeGraphicsDriver"
 typedef const PLGDriverImportTable *( *PLGDriverInitializationFunction )( const PLGDriverExportTable *exportTable );
 
 PL_EXTERN bool PlgRegisterDriver( const char *path );

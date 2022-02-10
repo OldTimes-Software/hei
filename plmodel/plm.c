@@ -32,7 +32,7 @@ typedef struct ModelLoader {
 } ModelLoader;
 
 #define MAX_OBJECT_INTERFACES 512
-static ModelLoader model_interfaces[ MAX_OBJECT_INTERFACES ];
+static ModelLoader model_interfaces[MAX_OBJECT_INTERFACES];
 static unsigned int num_model_loaders = 0;
 
 int LOG_LEVEL_MODEL = -1;
@@ -42,9 +42,9 @@ void PlmInitialize( void ) {
 
 	LOG_LEVEL_MODEL = PlAddLogLevel( "plmodel", PL_COLOUR_BLUE,
 #if !defined( NDEBUG )
-	                                 true
+                                     true
 #else
-	                                 false
+			false
 #endif
 	);
 }
@@ -60,23 +60,24 @@ void PlmGenerateModelNormals( PLMModel *model, bool perFace ) {
 }
 
 void PlmGenerateModelBounds( PLMModel *model ) {
-	PLCollisionAABB bounds = {
-	        PLVector3( 99999, 99999, 99999 ),   /* max */
-	        PLVector3( -99999, -99999, -99999 ) /* min */
-	};
+	PLCollisionAABB b1;
+	memset( &b1, 0, sizeof( PLCollisionAABB ) );
+
 	for ( unsigned int i = 0; i < model->numMeshes; ++i ) {
-		PLGMesh *mesh = model->meshes[ i ];
-		for ( unsigned int j = 0; j < mesh->num_verts; ++j ) {
-			PLGVertex *vertex = &mesh->vertices[ j ];
-			if ( vertex->position.x < bounds.mins.x ) bounds.mins.x = vertex->position.x;
-			if ( vertex->position.x > bounds.maxs.x ) bounds.maxs.x = vertex->position.x;
-			if ( vertex->position.y < bounds.mins.y ) bounds.mins.y = vertex->position.y;
-			if ( vertex->position.y > bounds.maxs.y ) bounds.maxs.y = vertex->position.y;
-			if ( vertex->position.z < bounds.mins.z ) bounds.mins.z = vertex->position.z;
-			if ( vertex->position.z > bounds.maxs.z ) bounds.maxs.z = vertex->position.z;
-		}
+		PLCollisionAABB b2 = PlgGenerateAabbFromMesh( model->meshes[ i ], false );
+		if ( b2.mins.x < b1.mins.x ) b1.mins.x = b2.mins.x;
+		if ( b2.mins.y < b1.mins.y ) b1.mins.y = b2.mins.y;
+		if ( b2.mins.z < b1.mins.z ) b1.mins.z = b2.mins.z;
+		if ( b2.maxs.x > b1.maxs.x ) b1.maxs.x = b2.maxs.x;
+		if ( b2.maxs.y > b1.maxs.y ) b1.maxs.y = b2.maxs.y;
+		if ( b2.maxs.z > b1.maxs.z ) b1.maxs.z = b2.maxs.z;
 	}
-	model->bounds = bounds;
+
+	/* abs origin is the middle of the bounding volume (wherever it is) and origin is the transformative point */
+	b1.absOrigin = PLVector3( ( b1.mins.x + b1.maxs.x ) / 2, ( b1.mins.y + b1.maxs.y ) / 2, ( b1.mins.z + b1.maxs.z ) / 2 );
+	b1.origin = pl_vecOrigin3;
+
+	model->bounds = b1;
 }
 
 bool PlmWriteModel( const char *path, PLMModel *model, PLMModelOutputType type ) {
@@ -112,10 +113,10 @@ void PlmRegisterStandardModelLoaders( unsigned int flags ) {
 		PLMModel *( *LoadFunction )( const char *path );
 	} SModelLoader;
 	static const SModelLoader loaderList[] = {
-	        { PLM_MODEL_FILEFORMAT_CYCLONE, "mdl", PlmLoadRequiemModel },
-	        { PLM_MODEL_FILEFORMAT_HDV, "hdv", PlmLoadHdvModel },
-	        { PLM_MODEL_FILEFORMAT_U3D, "3d", PlmLoadU3DModel },
-	        { PLM_MODEL_FILEFORMAT_OBJ, "obj", PlmLoadObjModel },
+			{ PLM_MODEL_FILEFORMAT_CYCLONE, "mdl", PlmLoadRequiemModel },
+			{ PLM_MODEL_FILEFORMAT_HDV,     "hdv", PlmLoadHdvModel },
+			{ PLM_MODEL_FILEFORMAT_U3D,     "3d",  PlmLoadU3DModel },
+			{ PLM_MODEL_FILEFORMAT_OBJ,     "obj", PlmLoadObjModel },
 	};
 
 	for ( unsigned int i = 0; i < PL_ARRAY_ELEMENTS( loaderList ); ++i ) {
@@ -168,7 +169,7 @@ PLMModel *PlmLoadModel( const char *path ) {
 }
 
 static PLMModel *CreateModel( PLMModelType type, PLGMesh **meshes, unsigned int numMeshes ) {
-	PLMModel *model = pl_malloc( sizeof( PLMModel ) );
+	PLMModel *model = PlMAllocA( sizeof( PLMModel ) );
 	if ( model == NULL ) {
 		return NULL;
 	}
@@ -182,12 +183,12 @@ static PLMModel *CreateModel( PLMModelType type, PLGMesh **meshes, unsigned int 
 }
 
 static PLMModel *CreateBasicModel( PLMModelType type, PLGMesh *mesh ) {
-	PLGMesh **meshes = pl_malloc( sizeof( PLGMesh * ) );
+	PLGMesh **meshes = PlMAllocA( sizeof( PLGMesh * ) );
 	meshes[ 0 ] = mesh;
 
 	PLMModel *model = CreateModel( type, meshes, 1 );
 	if ( model == NULL ) {
-		pl_free( meshes );
+		PlFree( meshes );
 		return NULL;
 	}
 
@@ -239,46 +240,35 @@ void PlmDestroyModel( PLMModel *model ) {
 		PlgDestroyMesh( model->meshes[ i ] );
 	}
 
-	pl_free( model->meshes );
-	pl_free( model->materials );
+	PlFree( model->meshes );
+	PlFree( model->materials );
 
 	if ( model->type == PLM_MODELTYPE_SKELETAL ) {
-		pl_free( model->internal.skeletal_data.bones );
+		PlFree( model->internal.skeletal_data.bones );
 	}
 
-	pl_free( model );
+	PlFree( model );
 }
 
-#if 0 /* todo: move */
+void PlmDrawModel( PLMModel *model ) {
+	plAssert( model );
 
-#include "graphics/graphics_private.h"
+	/* todo: currently only deals with static... */
 
-void plDrawModel(PLModel *model) {
-    plAssert(model);
+	PLGShaderProgram *old_program = PlgGetCurrentShaderProgram();
+	for ( unsigned int i = 0; i < model->numMeshes; ++i ) {
+		if ( model->meshes[ i ]->shader_program != NULL ) {
+			PlgSetShaderProgram( model->meshes[ i ]->shader_program );
+		}
 
-    /* todo: currently only deals with static... */
+		PlgSetTexture( model->meshes[ i ]->texture, 0 );
 
-    PLModelLod *lod = plGetModelLodLevel(model, model->current_level);
-    if(lod == NULL) {
-        return;
-    }
+		PlgSetShaderUniformValue( PlgGetCurrentShaderProgram(), "pl_model", &model->modelMatrix, true );
 
-    PLShaderProgram* old_program = plGetCurrentShaderProgram();
-    for(unsigned int i = 0; i < lod->num_meshes; ++i) {
-        if(lod->meshes[i]->shader_program != NULL) {
-            plSetShaderProgram(lod->meshes[i]->shader_program);
-        }
+		PlgUploadMesh( model->meshes[ i ] );
+		PlgDrawMesh( model->meshes[ i ] );
+	}
 
-        plSetTexture(lod->meshes[i]->texture, 0);
-
-        plSetShaderUniformValue( plGetCurrentShaderProgram(), "pl_model", &model->model_matrix, true );
-
-        plUploadMesh(lod->meshes[i]);
-        plDrawMesh(lod->meshes[i]);
-    }
-
-    plSetShaderProgram(old_program);
-    plSetTexture(NULL, 0);
+	PlgSetShaderProgram( old_program );
+	PlgSetTexture( NULL, 0 );
 }
-
-#endif

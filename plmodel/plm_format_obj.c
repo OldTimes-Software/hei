@@ -53,7 +53,7 @@ typedef struct ObjHandle {
 } ObjHandle;
 
 static void FreeObjHandle( ObjHandle *obj ) {
-	pl_free( obj );
+	PlFree( obj );
 }
 
 static ObjVectorLst *GetVectorIndex( ObjVectorLst *start, unsigned int idx ) {
@@ -76,7 +76,7 @@ PLMModel *PlmLoadObjModel( const char *path ) {
 		return NULL;
 	}
 
-	ObjHandle *obj = pl_malloc( sizeof( ObjHandle ) );
+	ObjHandle *obj = PlMAllocA( sizeof( ObjHandle ) );
 
 	ObjVectorLst **cur_v = &( obj->vertex_positions );
 	ObjVectorLst **cur_vn = &( obj->vertex_normals );
@@ -91,7 +91,7 @@ PLMModel *PlmLoadObjModel( const char *path ) {
 		if ( tk[ 0 ] == '\0' || tk[ 0 ] == '#' || tk[ 0 ] == 'o' || tk[ 0 ] == 'g' || tk[ 0 ] == 's' ) {
 			continue;
 		} else if ( tk[ 0 ] == 'v' && tk[ 1 ] == ' ' ) { /* vertex position */
-			ObjVectorLst *this_v = pl_malloc( sizeof( ObjVectorLst ) );
+			ObjVectorLst *this_v = PlMAllocA( sizeof( ObjVectorLst ) );
 			unsigned int n = sscanf( &tk[ 2 ], "%f %f %f", &this_v->v.x, &this_v->v.y, &this_v->v.z );
 			if ( n < 3 ) {
 				ModelLog( "Invalid vertex position, less than 3 coords!\n\"%s\"\n", tk );
@@ -104,7 +104,7 @@ PLMModel *PlmLoadObjModel( const char *path ) {
 			cur_v = &( this_v->next );
 			continue;
 		} else if ( tk[ 0 ] == 'v' && tk[ 1 ] == 't' ) { /* vertex texture */
-			ObjVectorLst *this_vt = pl_malloc( sizeof( ObjVectorLst ) );
+			ObjVectorLst *this_vt = PlMAllocA( sizeof( ObjVectorLst ) );
 			unsigned int n = sscanf( &tk[ 2 ], "%f %f", &this_vt->v.x, &this_vt->v.y );
 			if ( n < 2 ) {
 				ModelLog( "Invalid vertex uv, less than 2 coords!\n\"%s\"\n", tk );
@@ -117,7 +117,7 @@ PLMModel *PlmLoadObjModel( const char *path ) {
 			cur_vt = &( this_vt->next );
 			continue;
 		} else if ( tk[ 0 ] == 'v' && tk[ 1 ] == 'n' ) { /* vertex normal */
-			ObjVectorLst *this_vn = pl_malloc( sizeof( ObjVectorLst ) );
+			ObjVectorLst *this_vn = PlMAllocA( sizeof( ObjVectorLst ) );
 			if ( sscanf( &tk[ 2 ], "%f %f %f", &this_vn->v.x, &this_vn->v.y, &this_vn->v.z ) < 3 ) {
 				ModelLog( "Invalid vertex normal, less than 3 coords!\n\"%s\"\n", tk );
 			}
@@ -141,7 +141,7 @@ PLMModel *PlmLoadObjModel( const char *path ) {
 				pos++;
 			}
 
-			ObjFaceLst *this_face = pl_malloc( sizeof( ObjFaceLst ) );
+			ObjFaceLst *this_face = PlMAllocA( sizeof( ObjFaceLst ) );
 
 			*cur_face = this_face;
 			this_face->next = NULL;
@@ -179,7 +179,7 @@ bool plWriteObjModel( PLMModel *model, const char *path ) {
 	/* for now, use the same name as the model for the material */
 	const char *filename = PlGetFileName( path );
 	size_t len = strlen( filename );
-	char *mtl_name = pl_malloc( len );
+	char *mtl_name = PlMAllocA( len );
 	snprintf( mtl_name, len - 4, "%s", PlGetFileName( path ) );
 	fprintf( fp, "mtllib ./%s.mtl\n", mtl_name );
 
@@ -189,15 +189,15 @@ bool plWriteObjModel( PLMModel *model, const char *path ) {
 		if ( mesh->primitive == PLG_MESH_TRIANGLES ) {
 			fprintf( fp, "o mesh.%0d\n", i );
 			/* print out vertices */
-			for ( unsigned int vi = 0; vi < mesh->num_verts; ++i ) {
+			for ( unsigned int vi = 0; vi < mesh->num_verts; ++vi ) {
 				fprintf( fp, "v %s\n", PlPrintVector3( &mesh->vertices[ vi ].position, pl_float_var ) );
 			}
 			/* print out texture coords */
-			for ( unsigned int vi = 0; vi < mesh->num_verts; ++i ) {
+			for ( unsigned int vi = 0; vi < mesh->num_verts; ++vi ) {
 				fprintf( fp, "vt %s\n", PlPrintVector2( &mesh->vertices[ vi ].st[ 0 ], pl_float_var ) );
 			}
 			/* print out vertex normals */
-			for ( unsigned int vi = 0; vi < mesh->num_verts; ++i ) {
+			for ( unsigned int vi = 0; vi < mesh->num_verts; ++vi ) {
 				fprintf( fp, "vn %s\n", PlPrintVector3( &mesh->vertices[ vi ].normal, pl_float_var ) );
 			}
 			fprintf( fp, "# %d vertices\n", mesh->num_verts );
@@ -206,7 +206,7 @@ bool plWriteObjModel( PLMModel *model, const char *path ) {
 				fprintf( fp, "usemtl %s\n", mesh->texture->name );
 			}
 
-			for ( unsigned int fi = 0; fi < mesh->num_triangles; ++i ) {
+			for ( unsigned int fi = 0; fi < mesh->num_triangles; ++fi ) {
 				fprintf( fp, "f %d/%d/%d\n",
 				         mesh->indices[ fi ],
 				         mesh->indices[ fi ],
@@ -215,7 +215,7 @@ bool plWriteObjModel( PLMModel *model, const char *path ) {
 		}
 	}
 
-	pl_free( mtl_name );
+	PlFree( mtl_name );
 
 	fclose( fp );
 

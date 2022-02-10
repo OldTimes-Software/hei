@@ -39,9 +39,9 @@ typedef enum PLGBlend {
 
 	PLG_MAX_BLEND_MODES
 } PLGBlend;
-#define PLG_BLEND_DISABLE PLG_BLEND_NONE, PLG_BLEND_NONE
+#define PLG_BLEND_DISABLE  PLG_BLEND_NONE, PLG_BLEND_NONE
 #define PLG_BLEND_ADDITIVE PLG_BLEND_SRC_ALPHA, PLG_BLEND_ONE
-#define PLG_BLEND_DEFAULT PLG_BLEND_SRC_ALPHA, PLG_BLEND_ONE_MINUS_SRC_ALPHA
+#define PLG_BLEND_DEFAULT  PLG_BLEND_SRC_ALPHA, PLG_BLEND_ONE_MINUS_SRC_ALPHA
 
 //-----------------
 // Capabilities
@@ -147,6 +147,12 @@ typedef enum PLGShaderUniformType {
 } PLGShaderUniformType;
 
 typedef struct PLGShaderProgram PLGShaderProgram;
+typedef struct PLGShaderStage PLGShaderStage;
+
+#define PLG_MAX_DEFINITION_LENGTH 16
+#define PLG_MAX_DEFINITIONS       16
+
+#define PLG_MAX_SHADER_PROGRAM_ID 128
 
 typedef struct PLGShaderStage {
 	PLGShaderStageType type;
@@ -159,6 +165,11 @@ typedef struct PLGShaderStage {
 	struct {
 		unsigned int id;
 	} internal;
+
+	unsigned int numDefinitions;
+	char definitions[ PLG_MAX_DEFINITIONS ][ PLG_MAX_DEFINITION_LENGTH ];
+
+	PLPath path; /* original location it was loaded from */
 } PLGShaderStage;
 
 typedef struct PLGShaderProgram {
@@ -205,6 +216,8 @@ typedef struct PLGShaderProgram {
 		PLGShaderAttribute v_colour;
 		PLGShaderAttribute v_tangent, v_bitangent;
 	} internal;
+
+	char id[ PLG_MAX_SHADER_PROGRAM_ID ];
 } PLGShaderProgram;
 
 typedef struct PLGPolygon PLGPolygon;
@@ -219,10 +232,12 @@ PL_EXTERN_C
 PLFunctionResult PlgInitializeGraphics( void );
 void PlgShutdownGraphics( void );
 
-//PL_EXTERN PLShaderStage *plCreateShaderStage(PLShaderStageType type);
+PL_EXTERN PLGShaderStage *PlgCreateShaderStage( PLGShaderStageType type );
 PL_EXTERN PLGShaderStage *PlgParseShaderStage( PLGShaderStageType type, const char *buf, size_t length );
 PL_EXTERN PLGShaderStage *PlgLoadShaderStage( const char *path, PLGShaderStageType type );
 PL_EXTERN void PlgCompileShaderStage( PLGShaderStage *stage, const char *buf, size_t length );
+
+PL_EXTERN void PlgSetShaderStageDefinitions( PLGShaderStage *stage, const char definitions[][ PLG_MAX_DEFINITION_LENGTH ], unsigned int numDefinitions );
 
 PL_EXTERN void PlgAttachShaderStage( PLGShaderProgram *program, PLGShaderStage *stage );
 PL_EXTERN bool PlgRegisterShaderStageFromMemory( PLGShaderProgram *program, const char *buffer, size_t length,
@@ -242,16 +257,25 @@ PL_EXTERN void PlgSetShaderUniformsToDefault( PLGShaderProgram *program );
 PL_EXTERN void PlgSetShaderUniformValueByIndex( PLGShaderProgram *program, int slot, const void *value, bool transpose );
 PL_EXTERN void PlgSetShaderUniformValue( PLGShaderProgram *program, const char *name, const void *value, bool transpose );
 
-#if !defined( PL_EXCLUDE_DEPRECATED_API )
+#	if !defined( PL_EXCLUDE_DEPRECATED_API )
 PL_EXTERN PL_DEPRECATED( void PlgSetShaderUniformFloat( PLGShaderProgram *program, int slot, float value ) );
 PL_EXTERN PL_DEPRECATED( void PlgSetShaderUniformInt( PLGShaderProgram *program, int slot, int value ) );
 PL_EXTERN PL_DEPRECATED( void PlgSetShaderUniformVector4( PLGShaderProgram *program, int slot, PLVector4 value ) );
 PL_EXTERN PL_DEPRECATED( void PlgSetShaderUniformVector3( PLGShaderProgram *program, int slot, PLVector3 value ) );
 PL_EXTERN PL_DEPRECATED( void PlgSetShaderUniformMatrix4( PLGShaderProgram *program, int slot, PLMatrix4 value, bool transpose ) );
-#endif
+#	endif
 
 PL_EXTERN PLGShaderProgram *PlgCreateShaderProgram( void );
+PL_EXTERN PLGShaderProgram *PlgLoadCachedShaderProgram( const char *path );
 PL_EXTERN void PlgDestroyShaderProgram( PLGShaderProgram *program, bool free_stages );
+
+PL_EXTERN void PlgSetShaderProgramId( PLGShaderProgram *program, const char *id );
+PL_EXTERN void PlgClearShaderProgramId( PLGShaderProgram *program );
+PL_EXTERN const char *PlgGetShaderProgramId( PLGShaderProgram *program );
+
+PL_EXTERN void PlgSetShaderCacheLocation( const char *path );
+PL_EXTERN void PlgClearShaderCacheLocation( const char *path );
+PL_EXTERN const char *PlgGetShaderCacheLocation( void );
 
 PL_EXTERN PLGShaderProgram *PlgGetCurrentShaderProgram( void );
 

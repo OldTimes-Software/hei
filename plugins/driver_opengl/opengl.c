@@ -51,7 +51,7 @@ static int gl_version_major = 0;
 static int gl_version_minor = 0;
 
 #define GLVersion( maj, min ) ( ( ( maj ) == gl_version_major && ( min ) <= gl_version_minor ) || ( maj ) < gl_version_major )
-#define GLLog( ... ) gInterface->core->LogMessage( glLogLevel, __VA_ARGS__ )
+#define GLLog( ... )          gInterface->core->LogMessage( glLogLevel, __VA_ARGS__ )
 
 unsigned int gl_num_extensions = 0;
 
@@ -268,21 +268,21 @@ static void GLCreateFrameBuffer( PLGFrameBuffer *buffer ) {
 	if ( buffer->flags & PLG_BUFFER_COLOUR ) {
 		glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] );
 		glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] );
-		glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA, buffer->width, buffer->height );
+		glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA, ( int ) buffer->width, ( int ) buffer->height );
 		glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] );
 	}
 
 	if ( buffer->flags & PLG_BUFFER_DEPTH ) {
 		glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] );
 		glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] );
-		glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, buffer->width, buffer->height );
+		glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ( int ) buffer->width, ( int ) buffer->height );
 		glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] );
 	}
 
 	if ( buffer->flags & PLG_BUFFER_STENCIL ) {
 		glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] );
 		glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] );
-		glRenderbufferStorage( GL_RENDERBUFFER, GL_STENCIL, buffer->width, buffer->height );
+		glRenderbufferStorage( GL_RENDERBUFFER, GL_STENCIL, ( int ) buffer->width, ( int ) buffer->height );
 		glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] );
 	}
 }
@@ -401,6 +401,11 @@ static unsigned int TranslateImageFormat( PLImageFormat format ) {
 			return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 		case PL_IMAGEFORMAT_RGBA_DXT1:
 			return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+		case PL_IMAGEFORMAT_RGBA_DXT3:
+			return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+		case PL_IMAGEFORMAT_RGBA_DXT5:
+			return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+
 		case PL_IMAGEFORMAT_RGB_FXT1:
 			return GL_COMPRESSED_RGB_FXT1_3DFX;
 
@@ -409,26 +414,24 @@ static unsigned int TranslateImageFormat( PLImageFormat format ) {
 	}
 }
 
-static unsigned int TranslateStorageFormat( PLDataFormat format ) {
-	switch ( format ) {
-		case PL_UNSIGNED_BYTE:
-			return GL_UNSIGNED_BYTE;
-		case PL_UNSIGNED_INT_8_8_8_8_REV:
-			return GL_UNSIGNED_INT_8_8_8_8_REV;
-		default:
-			plAssert( 0 );
-			return 0; /* todo */
-	}
+static unsigned int GetStorageFormatForImageFormat( PLImageFormat format ) {
+	return GL_UNSIGNED_BYTE;
 }
 
-static unsigned int TranslateImageColourFormat( PLColourFormat format ) {
+static unsigned int GetColourFormatForImageFormat( PLImageFormat format ) {
 	switch ( format ) {
-		default:
-		case PL_COLOURFORMAT_RGBA:
-			return GL_RGBA;
-		case PL_COLOURFORMAT_RGB:
+		case PL_IMAGEFORMAT_RGB4:
+		case PL_IMAGEFORMAT_RGB5:
+		case PL_IMAGEFORMAT_RGB565:
+		case PL_IMAGEFORMAT_RGB8:
+		case PL_IMAGEFORMAT_RGB_DXT1:
+		case PL_IMAGEFORMAT_RGB_FXT1:
 			return GL_RGB;
+		default:
+			break;
 	}
+
+	return GL_RGBA;
 }
 
 static void GLCreateTexture( PLGTexture *texture ) {
@@ -482,9 +485,6 @@ static void GLUploadTexture( PLGTexture *texture, const PLImage *upload ) {
 	}
 
 	unsigned int image_format = TranslateImageFormat( upload->format );
-	unsigned int colour_format = TranslateImageColourFormat( upload->colour_format );
-	unsigned int storage_format = TranslateStorageFormat( texture->storage );
-
 	for ( unsigned int i = 0; i < levels; ++i ) {
 		GLsizei w = texture->w / ( unsigned int ) pow( 2, i );
 		GLsizei h = texture->h / ( unsigned int ) pow( 2, i );
@@ -504,8 +504,8 @@ static void GLUploadTexture( PLGTexture *texture, const PLImage *upload ) {
 			        image_format,
 			        w, h,
 			        0,
-			        colour_format,
-			        storage_format,
+			        GetColourFormatForImageFormat( upload->format ),
+			        GetStorageFormatForImageFormat( upload->format ),
 			        upload->data[ 0 ] );
 		}
 	}
@@ -985,7 +985,7 @@ static char *InsertString( const char *string, char **buf, size_t *bufSize, size
 	*bufSize += strLength;
 	if ( *bufSize >= *maxBufSize ) {
 		*maxBufSize = *bufSize + strLength;
-		*buf = gInterface->core->ReAlloc( *buf, *maxBufSize + 1 );
+		*buf = gInterface->core->ReAlloc( *buf, *maxBufSize + 1, true );
 	}
 
 	/* now copy it into our buffer */
@@ -999,28 +999,35 @@ static char *InsertString( const char *string, char **buf, size_t *bufSize, size
  * and handle any pre-processor commands.
  * todo: this is dumb... rewrite it
  */
-static char *GLPreProcessGLSLShader( char *buf, size_t *length, PLGShaderStageType type, bool head ) {
+static char *GLPreProcessGLSLShader( PLGShaderStage *stage, char *buf, size_t *length, bool head ) {
 	/* setup the destination buffer */
 	size_t actualLength = 0;
 	size_t maxLength = *length;
-	char *dstBuffer = gInterface->core->MAlloc( maxLength + 1 );
+	char *dstBuffer = gInterface->core->MAlloc( maxLength + 1, true );
 	char *dstPos = dstBuffer;
 
 	/* built-ins */
 #define insert( str ) dstPos = InsertString( ( str ), &dstBuffer, &actualLength, &maxLength )
 	if ( head ) {
 		insert( "#version 150 core\n" );//OpenGL 3.2 == GLSL 150
-		insert( "uniform mat4 pl_model;" );
-		insert( "uniform mat4 pl_view;" );
-		insert( "uniform mat4 pl_proj;" );
-		if ( type == PLG_SHADER_TYPE_VERTEX ) {
-			insert( "in vec3 pl_vposition;" );
-			insert( "in vec3 pl_vnormal;" );
-			insert( "in vec2 pl_vuv;" );
-			insert( "in vec4 pl_vcolour;" );
-			insert( "in vec3 pl_vtangent, pl_vbitangent;" );
-		} else if ( type == PLG_SHADER_TYPE_FRAGMENT ) {
-			insert( "out vec4 pl_frag;" );
+		insert( "uniform mat4 pl_model;\n" );
+		insert( "uniform mat4 pl_view;\n" );
+		insert( "uniform mat4 pl_proj;\n" );
+		if ( stage->type == PLG_SHADER_TYPE_VERTEX ) {
+			insert( "in vec3 pl_vposition;\n" );
+			insert( "in vec3 pl_vnormal;\n" );
+			insert( "in vec2 pl_vuv;\n" );
+			insert( "in vec4 pl_vcolour;\n" );
+			insert( "in vec3 pl_vtangent, pl_vbitangent;\n" );
+			insert( "#define PLG_COMPILE_VERTEX 1\n" );
+		} else if ( stage->type == PLG_SHADER_TYPE_FRAGMENT ) {
+			insert( "out vec4 pl_frag;\n" );
+			insert( "#define PLG_COMPILE_FRAGMENT 1\n" );
+		}
+		for ( unsigned int i = 0; i < stage->numDefinitions; ++i ) {
+			char line[ 32 ];
+			snprintf( line, sizeof( line ), "#define %s 1\n", stage->definitions[ i ] );
+			insert( line );
 		}
 	}
 
@@ -1031,32 +1038,8 @@ static char *GLPreProcessGLSLShader( char *buf, size_t *length, PLGShaderStageTy
 			break;
 		}
 
-		if ( *srcPos == '\n' || *srcPos == '\r' || *srcPos == '\t' ) {
-			srcPos++;
-			continue;
-		}
-
-		if ( srcPos[ 0 ] == ' ' && srcPos[ 1 ] == ' ' ) {
-			srcPos += 2;
-			while ( *srcPos == ' ' ) { ++srcPos; }
-			continue;
-		}
-
-		/* skip comments */
-		if ( srcPos[ 0 ] == '/' && srcPos[ 1 ] == '*' ) {
-			srcPos += 2;
-			while ( !( srcPos[ 0 ] == '*' && srcPos[ 1 ] == '/' ) ) srcPos++;
-			srcPos += 2;
-			continue;
-		}
-
-		if ( srcPos[ 0 ] == '/' && srcPos[ 1 ] == '/' ) {
-			srcPos += 2;
-			gInterface->core->SkipLine( &srcPos );
-			continue;
-		}
-
 		if ( *srcPos == '#' ) {
+			const char *p = srcPos;
 			srcPos++;
 
 			char token[ 32 ];
@@ -1072,7 +1055,7 @@ static char *GLPreProcessGLSLShader( char *buf, size_t *length, PLGShaderStageTy
 				if ( file != NULL ) {
 					/* allocate a temporary buffer */
 					size_t incLength = gInterface->core->GetFileSize( file );
-					char *incBuf = gInterface->core->MAlloc( incLength );
+					char *incBuf = gInterface->core->MAlloc( incLength + 1, true );
 					memcpy( incBuf, gInterface->core->GetFileData( file ), incLength );
 
 					/* close the current file, to avoid recursively opening files
@@ -1080,7 +1063,7 @@ static char *GLPreProcessGLSLShader( char *buf, size_t *length, PLGShaderStageTy
 					gInterface->core->CloseFile( file );
 
 					/* now throw it into the pre-processor */
-					incBuf = GLPreProcessGLSLShader( incBuf, &incLength, type, false );
+					incBuf = GLPreProcessGLSLShader( stage, incBuf, &incLength, false );
 
 					/* and finally, push it into our destination */
 					dstPos = InsertString( incBuf, &dstBuffer, &actualLength, &maxLength );
@@ -1092,12 +1075,15 @@ static char *GLPreProcessGLSLShader( char *buf, size_t *length, PLGShaderStageTy
 				gInterface->core->SkipLine( &srcPos );
 				continue;
 			}
+
+			/* we didn't need to do anything, so restore our position */
+			srcPos = p;
 		}
 
 		if ( ++actualLength > maxLength ) {
 			maxLength += 256;
 			char *oldDstBuffer = dstBuffer;
-			dstBuffer = gInterface->core->ReAlloc( dstBuffer, maxLength + 1 );
+			dstBuffer = gInterface->core->ReAlloc( dstBuffer, maxLength + 1, true );
 			dstPos = dstBuffer + ( dstPos - oldDstBuffer );
 		}
 
@@ -1196,10 +1182,10 @@ static void GLCompileShaderStage( PLGShaderStage *stage, const char *buf, size_t
 	}
 
 	/* shove this here for now... */
-	char *temp = gInterface->core->MAlloc( length + 1 );
+	char *temp = gInterface->core->MAlloc( length + 1, true );
 	memcpy( temp, buf, length );
 
-	temp = GLPreProcessGLSLShader( temp, &length, stage->type, true );
+	temp = GLPreProcessGLSLShader( stage, temp, &length, true );
 
 	glShaderSource( stage->internal.id, 1, ( const GLchar ** ) &temp, ( GLint * ) &length );
 	glCompileShader( stage->internal.id );
@@ -1210,7 +1196,7 @@ static void GLCompileShaderStage( PLGShaderStage *stage, const char *buf, size_t
 		int s_length;
 		glGetShaderiv( stage->internal.id, GL_INFO_LOG_LENGTH, &s_length );
 		if ( s_length > 1 ) {
-			char *log = gInterface->core->CAlloc( ( size_t ) s_length, sizeof( char ) );
+			char *log = gInterface->core->CAlloc( ( size_t ) s_length, sizeof( char ), true );
 			glGetShaderInfoLog( stage->internal.id, s_length, NULL, log );
 			GLLog( " COMPILE ERROR:\n%s\n", log );
 			gInterface->core->ReportError( PL_RESULT_SHADER_COMPILE, "%s", log );
@@ -1301,15 +1287,15 @@ static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 	}
 	program->num_uniforms = ( unsigned int ) num_uniforms;
 
-	GLLog( "Found %u uniforms in shader\n", program->num_uniforms );
+	//GLLog( "Found %u uniforms in shader\n", program->num_uniforms );
 
-	program->uniforms = gInterface->core->CAlloc( ( size_t ) program->num_uniforms, sizeof( *program->uniforms ) );
+	program->uniforms = gInterface->core->CAlloc( ( size_t ) program->num_uniforms, sizeof( *program->uniforms ), true );
 	unsigned int registered = 0;
 	for ( unsigned int i = 0; i < program->num_uniforms; ++i ) {
 		int maxUniformNameLength;
 		glGetActiveUniformsiv( program->internal.id, 1, &i, GL_UNIFORM_NAME_LENGTH, &maxUniformNameLength );
 
-		GLchar *uniformName = gInterface->core->MAlloc( maxUniformNameLength );
+		GLchar *uniformName = gInterface->core->MAlloc( maxUniformNameLength, true );
 		GLsizei nameLength;
 
 		GLenum glType;
@@ -1364,7 +1350,7 @@ static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 				break;
 		}
 
-		GLLog( " %4d (%20s) %s\n", i, program->uniforms[ i ].name, uniformDescriptors[ program->uniforms[ i ].type ] );
+		//GLLog( " %4d (%20s) %s\n", i, program->uniforms[ i ].name, uniformDescriptors[ program->uniforms[ i ].type ] );
 
 		registered++;
 	}
@@ -1387,6 +1373,66 @@ static void GLSetShaderProgram( PLGShaderProgram *program ) {
 	glUseProgram( id );
 }
 
+#define SHADER_CACHE_MAGIC PL_MAGIC_TO_NUM( 'G', 'L', 'S', 'B' )
+
+typedef struct ShaderCacheHeader {
+	uint32_t magic;
+	uint32_t checksum;
+	uint32_t format;
+	uint32_t length;
+} ShaderCacheHeader;
+
+static void CacheShaderProgram( PLGShaderProgram *program ) {
+	const char *cacheLocation = gInterface->GetShaderCacheLocation();
+	if ( *cacheLocation == '\0' ) {
+		return;
+	}
+
+	if ( !GLVersion( 4, 1 ) && !GLEW_ARB_get_program_binary ) {
+		GLLog( "Shader cache unsupported, skipping.\n" );
+		return;
+	}
+
+	if ( *program->id == '\0' ) {
+		GLLog( "No valid ID provided for program, skipping caching.\n" );
+		return;
+	}
+
+	PLPath path;
+	snprintf( path, sizeof( path ), "%s%s.glb", cacheLocation, program->id );
+	if ( gInterface->core->LocalFileExists( path ) ) {
+		GLLog( "Program has already been cached, skipping.\n" );
+		return;
+	}
+
+	int length;
+	glGetProgramiv( program->internal.id, GL_PROGRAM_BINARY_LENGTH, &length );
+
+	uint32_t format;
+	void *buf = gInterface->core->MAlloc( length, true );
+	glGetProgramBinary( program->internal.id, length, NULL, &format, buf );
+
+	uint32_t checksum;
+	gInterface->core->GenerateChecksumCRC32( buf, length, &checksum );
+
+	FILE *file = fopen( path, "wb" );
+	if ( file == NULL ) {
+		GLLog( "Failed to open write location: %s\n", path );
+		return;
+	}
+
+	ShaderCacheHeader header;
+	header.magic = SHADER_CACHE_MAGIC;
+	header.checksum = checksum;
+	header.format = format;
+	header.length = length;
+
+	fwrite( &header, sizeof( ShaderCacheHeader ), 1, file );
+	fwrite( buf, sizeof( char ), length, file );
+
+	fclose( file );
+}
+
 static void GLLinkShaderProgram( PLGShaderProgram *program ) {
 	if ( !GLVersion( 2, 0 ) ) {
 		return;
@@ -1400,11 +1446,10 @@ static void GLLinkShaderProgram( PLGShaderProgram *program ) {
 		int s_length;
 		glGetProgramiv( program->internal.id, GL_INFO_LOG_LENGTH, &s_length );
 		if ( s_length > 1 ) {
-			char *log = gInterface->core->CAlloc( ( size_t ) s_length, sizeof( char ) );
+			char *log = gInterface->core->CAlloc( ( size_t ) s_length, sizeof( char ), true );
 			glGetProgramInfoLog( program->internal.id, s_length, NULL, log );
 			GLLog( " LINK ERROR:\n%s\n", log );
 			gInterface->core->Free( log );
-
 			gInterface->core->ReportError( PL_RESULT_SHADER_COMPILE, "%s", log );
 		} else {
 			GLLog( " UNKNOWN LINK ERROR!\n" );
@@ -1415,6 +1460,7 @@ static void GLLinkShaderProgram( PLGShaderProgram *program ) {
 
 	program->is_linked = true;
 
+	CacheShaderProgram( program );
 	RegisterShaderProgramData( program );
 }
 

@@ -64,6 +64,7 @@ typedef struct PLGMesh {
 	unsigned int maxIndices;
 	unsigned int num_triangles;
 
+	/* todo: consider throwing out the below */
 	struct PLGShaderProgram *shader_program;
 	PLGTexture *texture;
 	unsigned int materialIndex;
@@ -96,8 +97,8 @@ PL_EXTERN void PlgDrawTriangle( int x, int y, unsigned int w, unsigned int h );
 PL_EXTERN void PlgDrawLines( const PLVector3 *points, unsigned int numPoints, PLColour colour );
 PL_EXTERN void PlgDrawLine( PLMatrix4 transform, PLVector3 startPos, PLColour startColour, PLVector3 endPos, PLColour endColour );
 PL_EXTERN void PlgDrawSimpleLine( PLMatrix4 transform, PLVector3 startPos, PLVector3 endPos, PLColour colour );
-PL_EXTERN void PlgDrawGrid( PLMatrix4 transform, int x, int y, int w, int h, unsigned int gridSize );
-PL_EXTERN void PlgDrawMeshNormals( const PLMatrix4 *transform, const PLGMesh *mesh );
+PL_EXTERN void PlgDrawGrid( int x, int y, int w, int h, unsigned int gridSize );
+PL_EXTERN void PlgDrawMeshNormals( const PLGMesh *mesh );
 PL_EXTERN void PlgDrawBoundingVolume( const PLCollisionAABB *bounds, PLColour colour );
 
 PL_EXTERN void PlgClearMesh( PLGMesh *mesh );

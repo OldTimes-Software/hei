@@ -28,6 +28,7 @@ For more information, please refer to <http://unlicense.org>
 #include <plcore/pl.h>
 #include <plcore/pl_console.h>
 #include <plcore/pl_image.h>
+#include <plcore/pl_package.h>
 
 /**
  * Command line utility to interface with the platform lib.
@@ -114,6 +115,18 @@ static void Cmd_Exit( unsigned int argc, char **argv ) {
 	isRunning = false;
 }
 
+PLPackage *IStorm_LST_LoadFile( const char *path );
+PLPackage *Outcast_OPK_LoadFile( const char *path );
+PLPackage *FTactics_PAK_LoadFile( const char *path );
+PLPackage *Doom_WAD_LoadFile( const char *path );
+PLPackage *Sentient_VSR_LoadFile( const char *path );
+PLPackage *Mortyr_HAL_LoadFile( const char *path );
+PLPackage *Eradicator_RID_LoadFile( const char *path );
+PLPackage *Outwars_FF_LoadFile( const char *path );
+PLPackage *Core_CLU_LoadPackage( const char *path );
+
+PLImage *Core_HGT_ParseImage( PLFile *file );
+
 #define MAX_COMMAND_LENGTH 256
 static char cmdLine[ MAX_COMMAND_LENGTH ];
 int main( int argc, char **argv ) {
@@ -124,6 +137,20 @@ int main( int argc, char **argv ) {
 	PlInitializeSubSystems( PL_SUBSYSTEM_IO );
 
 	PlRegisterStandardImageLoaders( PL_IMAGE_FILEFORMAT_ALL );
+	PlRegisterStandardPackageLoaders();
+
+	PlRegisterPackageLoader( "lst", IStorm_LST_LoadFile );
+	PlRegisterPackageLoader( "opk", Outcast_OPK_LoadFile );
+	PlRegisterPackageLoader( "pak", FTactics_PAK_LoadFile );
+	PlRegisterPackageLoader( "wad", Doom_WAD_LoadFile );
+	PlRegisterPackageLoader( "vsr", Sentient_VSR_LoadFile );
+	PlRegisterPackageLoader( "hal", Mortyr_HAL_LoadFile );
+	PlRegisterPackageLoader( "rid", Eradicator_RID_LoadFile );
+	PlRegisterPackageLoader( "rim", Eradicator_RID_LoadFile );
+	PlRegisterPackageLoader( "ff", Outwars_FF_LoadFile );
+	PlRegisterPackageLoader( "clu", Core_CLU_LoadPackage );
+
+	PlRegisterImageLoader( "hgt", Core_HGT_ParseImage );
 
 	PlRegisterPlugins( "./" );
 

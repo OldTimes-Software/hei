@@ -34,12 +34,12 @@
 extern int LOG_LEVEL_LOW, LOG_LEVEL_MEDIUM, LOG_LEVEL_HIGH, LOG_LEVEL_DEBUG;
 extern int LOG_LEVEL_FILESYSTEM;
 
-#define Print( FORMAT, ... ) PlLogWFunction( LOG_LEVEL_LOW, FORMAT, ## __VA_ARGS__ )
-#define PrintWarning( FORMAT, ... ) PlLogWFunction( LOG_LEVEL_MEDIUM, FORMAT, ## __VA_ARGS__ )
-#define PrintError( FORMAT, ... ) PlLogWFunction( LOG_LEVEL_HIGH, FORMAT, ## __VA_ARGS__ )
+#define Print( FORMAT, ... )        PlLogMessage( LOG_LEVEL_LOW, FORMAT, ##__VA_ARGS__ )
+#define PrintWarning( FORMAT, ... ) PlLogWFunction( LOG_LEVEL_MEDIUM, FORMAT, ##__VA_ARGS__ )
+#define PrintError( FORMAT, ... )   PlLogWFunction( LOG_LEVEL_HIGH, FORMAT, ##__VA_ARGS__ )
 #if !defined( NDEBUG )
-#define debug_printf( ... ) printf( __VA_ARGS__ )
-#define DebugPrint( FORMAT, ... ) PlLogWFunction( LOG_LEVEL_DEBUG, FORMAT, ## __VA_ARGS__ )
+#define debug_printf( ... )       printf( __VA_ARGS__ )
+#define DebugPrint( FORMAT, ... ) PlLogWFunction( LOG_LEVEL_DEBUG, FORMAT, ##__VA_ARGS__ )
 #else
 #define debug_printf( ... )
 #define DebugPrint( ... ) Print( __VA_ARGS__ )
@@ -69,7 +69,7 @@ const char *GetLastError_strerror( uint32_t errnum );
 int GetLastError( void );
 const char *GetLastError_strerror( int errnum );
 
-#define WSAGetLastError() GetLastError()
+#define WSAGetLastError()                  GetLastError()
 #define WSAGetLastError_strerror( errnum ) GetLastError_strerror( errnum )
 
 #endif

@@ -149,13 +149,13 @@ bool PlLoadDtxImage( PLFile *fin, PLImage *out ) {
 #endif
 
 	out->levels = 1;
-	out->data = pl_calloc( out->levels, sizeof( uint8_t * ) );
+	out->data = PlCAlloc( out->levels, sizeof( uint8_t * ), false );
 	if ( out->data == NULL ) {
 		PlFreeImage( out );
 		return false;
 	}
 
-	out->data[ 0 ] = pl_calloc( out->size, sizeof( uint8_t ) );
+	out->data[ 0 ] = PlCAlloc( out->size, sizeof( uint8_t ), false );
 	if ( out->data[ 0 ] == NULL ) {
 		PlFreeImage( out );
 		return false;

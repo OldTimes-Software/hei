@@ -21,12 +21,8 @@
  * @param type the type of shader stage.
  * @return the new shader stage.
  */
-static PLGShaderStage *CreateShaderStage( PLGShaderStageType type ) {
-	PLGShaderStage *stage = pl_calloc( 1, sizeof( PLGShaderStage ) );
-	if ( stage == NULL ) {
-		return NULL;
-	}
-
+PLGShaderStage *PlgCreateShaderStage( PLGShaderStageType type ) {
+	PLGShaderStage *stage = PlCAllocA( 1, sizeof( PLGShaderStage ) );
 	stage->type = type;
 
 	CallGfxFunction( CreateShaderStage, stage );
@@ -40,7 +36,7 @@ static PLGShaderStage *CreateShaderStage( PLGShaderStageType type ) {
  *
  * @param stage stage we're deleting.
  */
-void plDestroyShaderStage( PLGShaderStage *stage ) {
+void PlgDestroyShaderStage( PLGShaderStage *stage ) {
 	if ( stage == NULL ) {
 		return;
 	}
@@ -67,18 +63,26 @@ void PlgCompileShaderStage( PLGShaderStage *stage, const char *buf, size_t lengt
 }
 
 /**
+ * Sets out what definitions should be applied when compiling the shader stage.
+ */
+void PlgSetShaderStageDefinitions( PLGShaderStage *stage, const char definitions[][ PLG_MAX_DEFINITION_LENGTH ], unsigned int numDefinitions ) {
+	if ( numDefinitions > PLG_MAX_DEFINITIONS ) {
+		numDefinitions = PLG_MAX_DEFINITIONS;
+	}
+
+	stage->numDefinitions = numDefinitions;
+	memcpy( stage->definitions, definitions, PLG_MAX_DEFINITION_LENGTH * numDefinitions );
+}
+
+/**
  * This actually parses _and_ compiles the given stage.
  * Returns NULL on fail.
  */
 PLGShaderStage *PlgParseShaderStage( PLGShaderStageType type, const char *buf, size_t length ) {
-	PLGShaderStage *stage = CreateShaderStage( type );
-	if ( stage == NULL ) {
-		return NULL;
-	}
-
+	PLGShaderStage *stage = PlgCreateShaderStage( type );
 	PlgCompileShaderStage( stage, buf, length );
 	if ( PlGetFunctionResult() == PL_RESULT_SHADER_COMPILE ) {
-		plDestroyShaderStage( stage );
+		PlgDestroyShaderStage( stage );
 		return NULL;
 	}
 
@@ -104,7 +108,7 @@ PLGShaderStage *PlgLoadShaderStage( const char *path, PLGShaderStageType type ) 
 	}
 
 	size_t length = PlGetFileSize( fp );
-	char *buf = pl_malloc( length + 1 );
+	char *buf = PlMAlloc( length + 1, false );
 	if ( buf == NULL ) {
 		return NULL;
 	}
@@ -119,7 +123,9 @@ PLGShaderStage *PlgLoadShaderStage( const char *path, PLGShaderStageType type ) 
 	PlCloseFile( fp );
 
 	PLGShaderStage *stage = PlgParseShaderStage( type, buf, length );
-	pl_free( buf );
+	snprintf( stage->path, sizeof( stage->path ), "%s", path );
+
+	PlFree( buf );
 	return stage;
 }
 
@@ -133,12 +139,7 @@ PLGShaderStage *PlgLoadShaderStage( const char *path, PLGShaderStageType type ) 
  * @return the new shader program.
  */
 PLGShaderProgram *PlgCreateShaderProgram( void ) {
-	PLGShaderProgram *program = pl_calloc( 1, sizeof( PLGShaderProgram ) );
-	if ( program == NULL ) {
-		return NULL;
-	}
-
-	memset( program, 0, sizeof( PLGShaderProgram ) );
+	PLGShaderProgram *program = PlCAllocA( 1, sizeof( PLGShaderProgram ) );
 
 	CallGfxFunction( CreateShaderProgram, program );
 
@@ -161,7 +162,7 @@ void PlgDestroyShaderProgram( PLGShaderProgram *program, bool free_stages ) {
 		if ( program->stages[ i ] != NULL ) {
 			CallGfxFunction( DetachShaderStage, program, program->stages[ i ] );
 			if ( free_stages ) {
-				pl_free( program->stages[ i ] );
+				PlFree( program->stages[ i ] );
 			}
 		}
 	}
@@ -170,12 +171,43 @@ void PlgDestroyShaderProgram( PLGShaderProgram *program, bool free_stages ) {
 
 	/* free uniforms */
 	for ( unsigned int i = 0; i < program->num_uniforms; ++i ) {
-		pl_free( program->uniforms[ i ].name );
+		PlFree( program->uniforms[ i ].name );
 	}
-	pl_free( program->uniforms );
+	PlFree( program->uniforms );
 
-	pl_free( program->attributes );
-	pl_free( program );
+	PlFree( program->attributes );
+	PlFree( program );
+}
+
+void PlgSetShaderProgramId( PLGShaderProgram *program, const char *id ) {
+	snprintf( program->id, sizeof( program->id ), "%s", id );
+}
+
+void PlgClearShaderProgramId( PLGShaderProgram *program ) {
+	*program->id = '\0';
+}
+
+const char *PlgGetShaderProgramId( PLGShaderProgram *program ) {
+	return program->id;
+}
+
+void PlgSetShaderCacheLocation( const char *path ) {
+	const char *c = &path[ strlen( path ) - 1 ];
+	if ( *c == '\\' || *c == '/' ) {
+		c = "%s";
+	} else {
+		c = "/%s";
+	}
+
+	snprintf( gfx_state.shaderCacheLocation, sizeof( gfx_state.shaderCacheLocation ), c, path );
+}
+
+void PlgClearShaderCacheLocation( const char *path ) {
+	*gfx_state.shaderCacheLocation = '\0';
+}
+
+const char *PlgGetShaderCacheLocation( void ) {
+	return gfx_state.shaderCacheLocation;
 }
 
 void PlgAttachShaderStage( PLGShaderProgram *program, PLGShaderStage *stage ) {
@@ -186,10 +218,10 @@ void PlgAttachShaderStage( PLGShaderProgram *program, PLGShaderStage *stage ) {
 }
 
 bool PlgRegisterShaderStageFromMemory( PLGShaderProgram *program, const char *buffer, size_t length,
-                                      PLGShaderStageType type ) {
+                                       PLGShaderStageType type ) {
 	if ( program->num_stages >= PLG_MAX_SHADER_TYPES ) {
 		PlReportErrorF( PL_RESULT_MEMORY_EOA, "reached maximum number of available shader stage slots (%u)",
-		             program->num_stages );
+		                program->num_stages );
 		return false;
 	}
 
@@ -206,7 +238,7 @@ bool PlgRegisterShaderStageFromMemory( PLGShaderProgram *program, const char *bu
 bool PlgRegisterShaderStageFromDisk( PLGShaderProgram *program, const char *path, PLGShaderStageType type ) {
 	if ( program->num_stages >= PLG_MAX_SHADER_TYPES ) {
 		PlReportErrorF( PL_RESULT_MEMORY_EOA, "reached maximum number of available shader stage slots (%u)",
-		             program->num_stages );
+		                program->num_stages );
 		return false;
 	}
 
@@ -238,11 +270,7 @@ PLGShaderProgram *PlgGetCurrentShaderProgram( void ) {
  * @return true if the program is equal to that currently enabled.
  */
 bool PlgIsShaderProgramEnabled( PLGShaderProgram *program ) {
-	if ( gfx_state.current_program == program ) {
-		return true;
-	}
-
-	return false;
+	return ( gfx_state.current_program == program );
 }
 
 bool PlgLinkShaderProgram( PLGShaderProgram *program ) {

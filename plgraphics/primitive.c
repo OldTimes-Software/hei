@@ -37,7 +37,7 @@ typedef struct PLPrimitive {
 } PLPrimitive;
 
 PLPrimitive *plCreatePrimitive( void ) {
-	PLPrimitive *primitive = pl_calloc( 1, sizeof( PLPrimitive ) );
+	PLPrimitive *primitive = PlCAllocA( 1, sizeof( PLPrimitive ) );
 
 	
 
@@ -153,12 +153,12 @@ void plDestroyDisconnectedPrimitivePolygons( PLPrimitive *primitive ) {
 			continue;
 		}
 
-		PLPolygon **polygons = pl_calloc( numPolys, sizeof( *PLPolygon ) );
+		PLPolygon **polygons = PlCAllocA( numPolys, sizeof( *PLPolygon ) );
 		plGetAdjacentPrimitivePolygons( prim, i, polygons, numPolys );
 
 		/* blah... */
 
-		pl_free( polygons );
+		PlFree( polygons );
 #endif
 	}
 
@@ -167,7 +167,7 @@ void plDestroyDisconnectedPrimitivePolygons( PLPrimitive *primitive ) {
 		return;
 	}
 
-	PLPolygon *polygons = pl_calloc( numActualPolys, sizeof( PLPolygon ) );
+	PLPolygon *polygons = PlCAllocA( numActualPolys, sizeof( PLPolygon ) );
 	for( unsigned int i = 0; i < numActualPolys; ++i ) {
 		if( &primitive->polygons[ i ] == NULL ) {
 			continue;

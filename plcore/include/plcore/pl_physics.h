@@ -68,6 +68,8 @@ typedef struct PLCollision {
 	( PLCollisionPlane ) { ( ORIGIN ), ( NORMAL ) }
 #endif
 
+float PlComputeSphereFromCoords( const PLVector3 *vertices, unsigned int numVertices );
+
 PLCollisionAABB PlGenerateAabbFromCoords( const PLVector3 *vertices, unsigned int numVertices, bool absolute );
 PLVector3 PlGetAabbAbsOrigin( const PLCollisionAABB *bounds, PLVector3 origin );
 

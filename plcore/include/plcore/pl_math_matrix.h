@@ -21,24 +21,6 @@ typedef struct PLMatrix3 {
 	 * 0 0 0
 	 * 0 0 0
 	 */
-
-#ifdef __cplusplus
-
-	PLMatrix3() = default;
-
-	PLMatrix3( PLVector3 x, PLVector3 y, PLVector3 z ) {
-		m[ 0 ] = x.x;
-		m[ 3 ] = y.x;
-		m[ 6 ] = z.x;
-		m[ 1 ] = x.y;
-		m[ 4 ] = y.y;
-		m[ 7 ] = z.y;
-		m[ 2 ] = x.z;
-		m[ 5 ] = y.z;
-		m[ 8 ] = z.z;
-	}
-
-#endif
 } PLMatrix3;
 
 typedef struct PLMatrix3x4 {
@@ -49,18 +31,6 @@ typedef struct PLMatrix3x4 {
 	 */
 } PLMatrix3x4;
 
-typedef struct PLMatrix4 PLMatrix4;
-
-inline static PLMatrix4 PlAddMatrix4( PLMatrix4 m, PLMatrix4 m2 );
-inline static PLMatrix4 PlSubtractMatrix4( PLMatrix4 m, PLMatrix4 m2 );
-inline static PLMatrix4 PlScaleMatrix4( PLMatrix4 m, PLVector3 scale );
-inline static PLMatrix4 PlMultiplyMatrix4( PLMatrix4 m, PLMatrix4 m2 );
-inline static PLMatrix4 PlRotateMatrix4( float angle, PLVector3 axis );
-inline static PLMatrix4 PlTranslateMatrix4( PLVector3 v );
-inline static PLMatrix4 PlInverseMatrix4( PLMatrix4 m );
-inline static PLVector3 PlGetMatrix4Translation( const PLMatrix4 *m );
-inline static PLVector3 PlGetMatrix4Angle( const PLMatrix4 *m );
-
 typedef struct PLMatrix4 {
 	float m[ 16 ];
 	/* 0 0 0 0
@@ -68,83 +38,107 @@ typedef struct PLMatrix4 {
 	 * 0 0 0 0
 	 * 0 0 0 0
 	 */
+} PLMatrix4;
+
+inline static PLMatrix4 PlAddMatrix4( PLMatrix4 m, PLMatrix4 m2 );
+inline static PLMatrix4 PlSubtractMatrix4( PLMatrix4 m, PLMatrix4 m2 );
+inline static PLMatrix4 PlScaleMatrix4( PLMatrix4 m, PLVector3 scale );
+inline static PLMatrix4 PlMultiplyMatrix4( PLMatrix4 m, PLMatrix4 m2 );
+PLMatrix4 PlRotateMatrix4( float angle, const PLVector3 *axis );
+inline static PLMatrix4 PlTranslateMatrix4( PLVector3 v );
+inline static PLMatrix4 PlInverseMatrix4( PLMatrix4 m );
+
+PLVector3 PlGetMatrix4Translation( const PLMatrix4 *m );
+PLVector3 PlGetMatrix4Angle( const PLMatrix4 *m );
 
 #ifdef __cplusplus
-	inline void Identity() {
-		m[ 0 ] = 1;
-		m[ 1 ] = 0;
-		m[ 2 ] = 0;
-		m[ 3 ] = 0;
-		m[ 4 ] = 0;
+namespace hei {
+	struct Matrix4 : PLMatrix4 {
+		Matrix4() {
+			Identity();
+		}
 
-		m[ 5 ] = 1;
-		m[ 6 ] = 0;
-		m[ 7 ] = 0;
-		m[ 8 ] = 0;
-		m[ 9 ] = 0;
+		inline void Identity() {
+			m[ 0 ] = 1;
+			m[ 1 ] = 0;
+			m[ 2 ] = 0;
+			m[ 3 ] = 0;
+			m[ 4 ] = 0;
 
-		m[ 10 ] = 1;
-		m[ 11 ] = 0;
-		m[ 12 ] = 0;
-		m[ 13 ] = 0;
-		m[ 14 ] = 0;
+			m[ 5 ] = 1;
+			m[ 6 ] = 0;
+			m[ 7 ] = 0;
+			m[ 8 ] = 0;
+			m[ 9 ] = 0;
 
-		m[ 15 ] = 1;
-	}
+			m[ 10 ] = 1;
+			m[ 11 ] = 0;
+			m[ 12 ] = 0;
+			m[ 13 ] = 0;
+			m[ 14 ] = 0;
 
-	inline void Transpose( const PLMatrix4 &m2 ) {
-		for ( unsigned int j = 0; j < 4; ++j ) {
-			for ( unsigned int i = 0; i < 4; ++i ) {
-				pl_m4pos( i, j ) = m2.pl_m4pos( j, i );
+			m[ 15 ] = 1;
+		}
+
+		inline void Transpose( const Matrix4 &m2 ) {
+			for ( unsigned int j = 0; j < 4; ++j ) {
+				for ( unsigned int i = 0; i < 4; ++i ) {
+					pl_m4pos( i, j ) = m2.pl_m4pos( j, i );
+				}
 			}
 		}
-	}
 
-	inline PLMatrix4 Translate( const PLVector3 &position ) {
-		return *this *= PlTranslateMatrix4( position );
-	}
+		inline Matrix4 Translate( const PLVector3 &position ) {
+			return *this *= PlTranslateMatrix4( position );
+		}
 
-	inline PLMatrix4 Rotate( float angle, const PLVector3 &axis ) {
-		return *this *= PlRotateMatrix4( angle, axis );
-	}
+		inline Matrix4 Rotate( float angle, const PLVector3 &axis ) {
+			return *this *= PlRotateMatrix4( angle, &axis );
+		}
 
-	inline void Clear() {
-		for ( float &i : m ) { i = 0; }
-	}
+		inline void Clear() {
+			for ( float &i : m ) { i = 0; }
+		}
 
-	inline PLVector3 GetAngle() {
-		return PlGetMatrix4Angle( this );
-	}
+		inline PLVector3 GetAngle() {
+			return PlGetMatrix4Angle( this );
+		}
 
-	inline PLVector3 GetTranslation() {
-		return PlGetMatrix4Translation( this );
-	}
+		inline PLVector3 GetTranslation() {
+			return PlGetMatrix4Translation( this );
+		}
 
-	inline PLMatrix4 operator+( PLMatrix4 m2 ) const {
-		return PlAddMatrix4( *this, m2 );
-	}
+		inline PLMatrix4 operator+( PLMatrix4 m2 ) const {
+			return PlAddMatrix4( *this, m2 );
+		}
 
-	inline PLMatrix4 operator-( PLMatrix4 m2 ) const {
-		return PlSubtractMatrix4( *this, m2 );
-	}
+		inline PLMatrix4 operator-( PLMatrix4 m2 ) const {
+			return PlSubtractMatrix4( *this, m2 );
+		}
 
-	inline PLMatrix4 operator*( PLVector3 v ) const {
-		return PlScaleMatrix4( *this, v );
-	}
+		inline PLMatrix4 operator*( PLVector3 v ) const {
+			return PlScaleMatrix4( *this, v );
+		}
 
-	inline PLMatrix4 operator*( PLMatrix4 m2 ) const {
-		return PlMultiplyMatrix4( *this, m2 );
-	}
+		inline PLMatrix4 operator*( PLMatrix4 m2 ) const {
+			return PlMultiplyMatrix4( *this, m2 );
+		}
 
-	inline PLMatrix4 &operator*=( PLMatrix4 m2 ) {
-		return *this = *this * m2;
-	}
+		inline Matrix4 &operator=( const PLMatrix4 &m2 ) {
+			memcpy( m, m2.m, sizeof( m ) );
+			return *this;
+		}
 
-	inline PLMatrix4 &operator*=( PLVector3 v ) {
-		return *this = *this * v;
-	}
+		inline Matrix4 &operator*=( PLMatrix4 m2 ) {
+			return *this = *this * m2;
+		}
+
+		inline Matrix4 &operator*=( PLVector3 v ) {
+			return *this = *this * v;
+		}
+	};
+}
 #endif
-} PLMatrix4;
 
 /* ClearMatrix */
 
@@ -285,66 +279,8 @@ inline static PLMatrix4 PlMultiplyMatrix4( PLMatrix4 m, PLMatrix4 m2 ) {
 	return out;
 }
 
-/* Rotate */
-
-inline static PLMatrix4 PlRotateMatrix4( float angle, PLVector3 axis ) {
-	float s = sinf( angle );
-	float c = cosf( angle );
-	float t = 1.0f - c;
-
-	PLVector3 tv = PLVector3( t * axis.x, t * axis.y, t * axis.z );
-	PLVector3 sv = PLVector3( s * axis.x, s * axis.y, s * axis.z );
-
-	PLMatrix4 m;
-
-	m.pl_m4pos( 0, 0 ) = tv.x * axis.x + c;
-	m.pl_m4pos( 1, 0 ) = tv.x * axis.y + sv.z;
-	m.pl_m4pos( 2, 0 ) = tv.x * axis.z - sv.y;
-
-	m.pl_m4pos( 0, 1 ) = tv.x * axis.y - sv.z;
-	m.pl_m4pos( 1, 1 ) = tv.y * axis.y + c;
-	m.pl_m4pos( 2, 1 ) = tv.y * axis.z + sv.x;
-
-	m.pl_m4pos( 0, 2 ) = tv.x * axis.z + sv.y;
-	m.pl_m4pos( 1, 2 ) = tv.y * axis.z - sv.x;
-	m.pl_m4pos( 2, 2 ) = tv.z * axis.z + c;
-
-	m.pl_m4pos( 3, 0 ) = 0;
-	m.pl_m4pos( 3, 1 ) = 0;
-	m.pl_m4pos( 3, 2 ) = 0;
-	m.pl_m4pos( 0, 3 ) = 0;
-	m.pl_m4pos( 1, 3 ) = 0;
-	m.pl_m4pos( 2, 3 ) = 0;
-	m.pl_m4pos( 3, 3 ) = 1.0f;
-
-	return m;
-}
-
 /******************************************************************/
 /* Utility Functions */
-
-inline static PLVector3 PlGetMatrix4Translation( const PLMatrix4 *m ) {
-	return PLVector3( m->pl_m4pos( 0, 3 ), m->pl_m4pos( 1, 3 ), m->pl_m4pos( 2, 3 ) );
-}
-
-inline static PLVector3 PlGetMatrix4Angle( const PLMatrix4 *m ) {
-	PLVector3 out = PLVector3( 0, 0, 0 );
-	out.y = PlRadiansToDegrees( asinf( m->m[ 8 ] ) );
-	if ( m->m[ 10 ] < 0 ) {
-		if ( out.y >= 0 ) {
-			out.y = 180.f - out.y;
-		} else {
-			out.y = -180.f - out.y;
-		}
-	}
-	if ( m->m[ 0 ] > -PL_EPSILON && m->m[ 0 ] < PL_EPSILON ) {
-		out.x = PlRadiansToDegrees( atan2f( m->m[ 1 ], m->m[ 5 ] ) );
-	} else {
-		out.z = PlRadiansToDegrees( atan2f( -m->m[ 4 ], m->m[ 0 ] ) );
-		out.x = PlRadiansToDegrees( atan2f( -m->m[ 9 ], m->m[ 10 ] ) );
-	}
-	return out;
-}
 
 inline static bool PlCompareMatrix( const PLMatrix4 *m, const PLMatrix4 *m2 ) {
 	for ( unsigned int i = 0; i < 4; ++i ) {

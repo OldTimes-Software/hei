@@ -4,24 +4,24 @@
  * This software is licensed under MIT. See LICENSE for more details.
  */
 
-#if !defined(_MSC_VER)
+#if !defined( _MSC_VER )
 #include <strings.h>
 #endif
 #include <ctype.h>
 
-char *pl_strtolower(char *s) {
-    for(size_t i = 0; s[i] != '\0'; ++i) {
-        s[i] = (char)tolower(s[i]);
-    }
-    return s;
+char *pl_strtolower( char *s ) {
+	for ( size_t i = 0; s[ i ] != '\0'; ++i ) {
+		s[ i ] = ( char ) tolower( s[ i ] );
+	}
+	return s;
 }
 
-char *pl_strntolower(char *s, size_t n) {
-    for(size_t i = 0; i < n; ++i) {
-        if(s[i] == '\0') {
-            break;
-        }
-        s[i] = (char)tolower(s[i]);
-    }
-    return s;
+char *pl_strntolower( char *s, size_t n ) {
+	for ( size_t i = 0; i < n; ++i ) {
+		if ( s[ i ] == '\0' ) {
+			break;
+		}
+		s[ i ] = ( char ) tolower( s[ i ] );
+	}
+	return s;
 }

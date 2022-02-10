@@ -9,21 +9,54 @@
 #include <plcore/pl_filesystem.h>
 #include <plcore/pl_math.h>
 
-typedef enum PLDataFormat {
-	PL_UNSIGNED_BYTE,
-	PL_UNSIGNED_INT_8_8_8_8_REV,
-} PLDataFormat;
+#define PL_IMAGE_MAX_CHANNELS 4
+
+/** todo
+ * 		Wow hogsy, that sure is a big list of pixel formats!
+ * 		Thanks for noticing *blush*
+ * 		Anyway, I'd like to eventually replace this with a
+ * 		pixel descriptor structure - so we explicitly store
+ * 		the pixel size, the channel order, flags for ignored
+ * 		channels etc., which should mean we can get rid of
+ * 		these lists.
+ */
+
+//#define PL_NEW_IMAGE_API
+#if defined( PL_NEW_IMAGE_API )
+enum {
+	PL_IMAGE_CHANNEL_RED,
+	PL_IMAGE_CHANNEL_GREEN,
+	PL_IMAGE_CHANNEL_BLUE,
+	PL_IMAGE_CHANNEL_ALPHA,
+	PL_IMAGE_CHANNEL_IGNORED,
+};
+
+typedef struct PLImageChannelFormatDescriptor {
+	uint8_t type;
+	uint8_t size; /* in bits */
+} PLImageChannelFormatDescriptor;
+
+typedef struct PLImagePixelFormatDescriptor {
+	uint8_t pixelSize;
+	uint8_t numChannels;
+	PLImageChannelFormatDescriptor channels[ PL_IMAGE_MAX_CHANNELS ];
+} PLImagePixelFormatDescriptor;
+#endif
 
 typedef enum PLImageFormat {
 	PL_IMAGEFORMAT_UNKNOWN,
 
-	PL_IMAGEFORMAT_RGB4,   // 4 4 4 0
+	PL_IMAGEFORMAT_R8,
+	PL_IMAGEFORMAT_RGB4,   // 4 4 4
 	PL_IMAGEFORMAT_RGBA4,  // 4 4 4 4
-	PL_IMAGEFORMAT_RGB5,   // 5 5 5 0
+	PL_IMAGEFORMAT_RGB5,   // 5 5 5
 	PL_IMAGEFORMAT_RGB5A1, // 5 5 5 1
-	PL_IMAGEFORMAT_RGB565, // 5 6 5 0
-	PL_IMAGEFORMAT_RGB8,   // 8 8 8 0
+	PL_IMAGEFORMAT_RGB565, // 5 6 5
+	PL_IMAGEFORMAT_RGB8,   // 8 8 8
+	PL_IMAGEFORMAT_BGR8,   // 8 8 8
 	PL_IMAGEFORMAT_RGBA8,  // 8 8 8 8
+	PL_IMAGEFORMAT_BGRA8,  // 8 8 8 8
+	PL_IMAGEFORMAT_BGRX8,  // 8 8 8 0
 	PL_IMAGEFORMAT_RGBA12, // 12 12 12 12
 	PL_IMAGEFORMAT_RGBA16, // 16 16 16 16
 	PL_IMAGEFORMAT_RGBA16F,// 16 16 16 16
@@ -36,6 +69,7 @@ typedef enum PLImageFormat {
 	PL_IMAGEFORMAT_RGB_FXT1
 } PLImageFormat;
 
+/* todo: deprecate this */
 typedef enum PLColourFormat {
 	PL_COLOURFORMAT_ARGB,
 	PL_COLOURFORMAT_ABGR,
@@ -61,12 +95,6 @@ typedef struct PLImage {
 	unsigned int flags;
 } PLImage;
 
-typedef struct PLPalette {
-	PLImageFormat format;
-	uint8_t *colours;
-	unsigned int num_colours;
-} PLPalette;
-
 enum {
 	PL_IMAGE_FILEFORMAT_ALL = 0,
 
@@ -79,17 +107,19 @@ enum {
 	PL_BITFLAG( PL_IMAGE_FILEFORMAT_HDR, 6 ),
 	PL_BITFLAG( PL_IMAGE_FILEFORMAT_PIC, 7 ),
 	PL_BITFLAG( PL_IMAGE_FILEFORMAT_PNM, 8 ),
-	PL_BITFLAG( PL_IMAGE_FILEFORMAT_FTX, 9 ),
+	PL_BITFLAG( PL_IMAGE_FILEFORMAT_FTX, 9 ), /* todo: move to extras */
 	PL_BITFLAG( PL_IMAGE_FILEFORMAT_3DF, 10 ),
 	PL_BITFLAG( PL_IMAGE_FILEFORMAT_TIM, 11 ),
-	PL_BITFLAG( PL_IMAGE_FILEFORMAT_SWL, 12 ),
+	PL_BITFLAG( PL_IMAGE_FILEFORMAT_SWL, 12 ), /* todo: move to extras */
+	PL_BITFLAG( PL_IMAGE_FILEFORMAT_QOI, 13 ),
+	PL_BITFLAG( PL_IMAGE_FILEFORMAT_DDS, 14 ),
 };
 
 PL_EXTERN_C
 
 #if !defined( PL_COMPILE_PLUGIN )
 
-PL_EXTERN void PlRegisterImageLoader( const char *extension, PLImage *( *LoadImage )( const char *path ) );
+PL_EXTERN void PlRegisterImageLoader( const char *extension, PLImage *( *ParseFile )( PLFile *path ) );
 PL_EXTERN void PlRegisterStandardImageLoaders( unsigned int flags );
 PL_EXTERN void PlClearImageLoaders( void );
 
@@ -97,27 +127,31 @@ PL_EXTERN PLImage *PlCreateImage( uint8_t *buf, unsigned int w, unsigned int h, 
 PL_EXTERN void PlDestroyImage( PLImage *image );
 
 PL_EXTERN PLImage *PlLoadImage( const char *path );
+PL_EXTERN PLImage *PlParseImage( PLFile *file );
 PL_EXTERN bool PlWriteImage( const PLImage *image, const char *path );
 
 PL_EXTERN bool PlConvertPixelFormat( PLImage *image, PLImageFormat new_format );
-//PL_EXTERN bool plConvertColourFormat( PLImage *image, PLColourFormat newFormat );
 
 PL_EXTERN void PlInvertImageColour( PLImage *image );
 PL_EXTERN void PlReplaceImageColour( PLImage *image, PLColour target, PLColour dest );
 
 PL_EXTERN bool PlFlipImageVertical( PLImage *image );
 
-PL_EXTERN unsigned int PlGetNumberOfColourChannels( PLColourFormat format );
-
-PL_EXTERN bool PlImageIsPowerOfTwo( const PLImage *image );
-
-PL_EXTERN void PlFreeImage( PLImage *image );
-
+PL_EXTERN PL_DEPRECATED( void PlFreeImage( PLImage *image ) );
 PL_EXTERN unsigned int PlGetImageSize( PLImageFormat format, unsigned int width, unsigned int height );
 
-unsigned int PlImageBytesPerPixel( PLImageFormat format );
+unsigned int PlGetImageFormatPixelSize( PLImageFormat format );
+unsigned int PlGetNumImageFormatChannels( PLImageFormat format );
+
+bool PlImageHasAlpha( const PLImage *image );
 
 PL_EXTERN const char **PlGetSupportedImageFormats( unsigned int *numElements );
+
+unsigned int PlGetImageWidth( const PLImage *image );
+unsigned int PlGetImageHeight( const PLImage *image );
+PLImageFormat PlGetImageFormat( const PLImage *image );
+const uint8_t *PlGetImageData( const PLImage *image, unsigned int level );
+unsigned int PlGetImageDataSize( const PLImage *image );
 
 #endif
 

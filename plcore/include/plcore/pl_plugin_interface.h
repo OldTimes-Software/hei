@@ -46,9 +46,9 @@ typedef struct PLPluginExportTable {
 	void ( *ReportError )( PLFunctionResult resultType, const char *function, const char *message, ... );
 	const char *( *GetError )( void );
 
-	void *( *MAlloc )( size_t size );
-	void *( *CAlloc )( size_t num, size_t size );
-	void *( *ReAlloc )( void *ptr, size_t newSize );
+	void *( *MAlloc )( size_t size, bool abortOnFail );
+	void *( *CAlloc )( size_t num, size_t size, bool abortOnFail );
+	void *( *ReAlloc )( void *ptr, size_t newSize, bool abortOnFail );
 	void ( *Free )( void *ptr );
 
 	/**
@@ -65,6 +65,7 @@ typedef struct PLPluginExportTable {
 	bool ( *CreateDirectory )( const char *path );
 	bool ( *CreatePath )( const char *path );
 
+	PLFile *( *CreateFileFromMemory )( const char *path, void *buf, size_t bufSize, PLFileMemoryBufferType bufType );
 	PLFile *( *OpenLocalFile )( const char *path, bool cache );
 	PLFile *( *OpenFile )( const char *path, bool cache );
 	void ( *CloseFile )( PLFile *file );
@@ -74,7 +75,7 @@ typedef struct PLPluginExportTable {
 	const char *( *GetFilePath )( const PLFile *file );
 	const uint8_t *( *GetFileData )( const PLFile *file );
 	size_t ( *GetFileSize )( const PLFile *file );
-	size_t ( *GetFileOffset )( const PLFile *file );
+	PLFileOffset ( *GetFileOffset )( const PLFile *file );
 
 	size_t ( *ReadFile )( PLFile *file, void *destination, size_t size, size_t count );
 
@@ -85,17 +86,19 @@ typedef struct PLPluginExportTable {
 
 	char *( *ReadString )( PLFile *file, char *destination, size_t size );
 
-	bool ( *FileSeek )( PLFile *file, long int pos, PLFileSeek seek );
+	bool ( *FileSeek )( PLFile *file, PLFileOffset pos, PLFileSeek seek );
 	void ( *RewindFile )( PLFile *file );
+
+	const void *( *CacheFile )( PLFile *file );
 
 	/**
  	 * PLUGIN API
  	 **/
 
-	PLPackage *( *CreatePackageHandle )( const char *path, unsigned int tableSize, uint8_t* ( *OpenFile )( PLFile *filePtr, PLPackageIndex *index ) );
+	PLPackage *( *CreatePackageHandle )( const char *path, unsigned int tableSize, uint8_t *( *OpenFile )( PLFile *filePtr, PLPackageIndex *index ) );
 
 	void ( *RegisterPackageLoader )( const char *extension, PLPackage *( *LoadFunction )( const char *path ) );
-	void ( *RegisterImageLoader )( const char *extension, PLImage *( *LoadFunction )( const char *path ) );
+	void ( *RegisterImageLoader )( const char *extension, PLImage *( *LoadFunction )( PLFile *file ) );
 
 	const char *( *GetPackagePath )( const PLPackage *package );
 	unsigned int ( *GetPackageTableSize )( const PLPackage *package );
@@ -114,7 +117,6 @@ typedef struct PLPluginExportTable {
 	void ( *ReplaceImageColour )( PLImage *image, PLColour target, PLColour destination );
 	bool ( *FlipImageVertical )( PLImage *image );
 
-	unsigned int ( *GetNumberOfColourChannels )( PLColourFormat colourFormat );
 	unsigned int ( *GetImageSize )( PLImageFormat format, unsigned int width, unsigned int height );
 
 	/** v2.0 ************************************************/
@@ -138,7 +140,7 @@ typedef struct PLPluginExportTable {
 	 * SCRIPT API
 	 **/
 
-	bool ( *IsEndOfLine )( const char **p );
+	bool ( *IsEndOfLine )( const char *p );
 
 	void ( *SkipWhitespace )( const char **p );
 	void ( *SkipLine )( const char **p );
@@ -147,19 +149,33 @@ typedef struct PLPluginExportTable {
 	const char *( *ParseToken )( const char **p, char *dest, size_t size );
 	int ( *ParseInteger )( const char **p, bool *status );
 	float ( *ParseFloat )( const char **p, bool *status );
+
+	/** v4.1 ************************************************/
+
+	void ( *GenerateChecksumCRC32 )( const void *buf, uint32_t bufSize, uint32_t *crc );
 } PLPluginExportTable;
 
 /* be absolutely sure to change this whenever the API is updated! */
-#define PL_PLUGIN_INTERFACE_VERSION_MAJOR 3
-#define PL_PLUGIN_INTERFACE_VERSION_MINOR 0
-#define PL_PLUGIN_INTERFACE_VERSION ( uint16_t[ 2 ] ){ PL_PLUGIN_INTERFACE_VERSION_MAJOR, PL_PLUGIN_INTERFACE_VERSION_MINOR }
+#define PL_PLUGIN_INTERFACE_VERSION_MAJOR 6
+#define PL_PLUGIN_INTERFACE_VERSION_MINOR 1
+#define PL_PLUGIN_INTERFACE_VERSION \
+	( uint16_t[ 2 ] ) { PL_PLUGIN_INTERFACE_VERSION_MAJOR, PL_PLUGIN_INTERFACE_VERSION_MINOR }
 
 #define PL_PLUGIN_QUERY_FUNCTION "PLQueryPlugin"
 typedef const PLPluginDescription *( *PLPluginQueryFunction )( void );
 #define PL_PLUGIN_INIT_FUNCTION "PLInitializePlugin"
 typedef void ( *PLPluginInitializationFunction )( const PLPluginExportTable *exportTable );
 
-/* 2021-04-22
+/* 2022-01-12
+ * - Expose CacheFile functionality
+ *
+ * 2022-01-10
+ * - RegisterImageLoader now takes a File handle
+ *
+ * 2021-10-03
+ * - Memory allocation functions now take an 'abortOnFail' parameter
+ *
+ * 2021-04-22
  * - Removed some functions from the default interface
  *
  * 2021-03-29;

@@ -13,14 +13,14 @@ static void CheckTMUStates( void ) {
 		return;
 	}
 
-    gfx_state.tmu = ( PLGTextureMappingUnit * ) pl_calloc( PlgGetMaxTextureUnits(), sizeof( PLGTextureMappingUnit ) );
+    gfx_state.tmu = ( PLGTextureMappingUnit * ) PlCAllocA( PlgGetMaxTextureUnits(), sizeof( PLGTextureMappingUnit ) );
     for ( unsigned int i = 0; i < PlgGetMaxTextureUnits(); i++ ) {
         gfx_state.tmu[ i ].current_envmode = PLG_TEXTUREMODE_REPLACE;
     }
 }
 
 void PlgShutdownTextures( void ) {
-	pl_free( gfx_state.tmu );
+	PlFree( gfx_state.tmu );
 }
 
 /* todo: move into generic GET handler */
@@ -35,11 +35,7 @@ unsigned int PlgGetMaxTextureSize( void ) {
 }
 
 PLGTexture *PlgCreateTexture( void ) {
-	PLGTexture *texture = pl_calloc( 1, sizeof( PLGTexture ) );
-	if ( texture == NULL ) {
-		return NULL;
-	}
-
+	PLGTexture *texture = PlCAllocA( 1, sizeof( PLGTexture ) );
 	texture->format = PL_IMAGEFORMAT_RGBA8;
 	texture->w = 8;
 	texture->h = 8;
@@ -55,7 +51,7 @@ void PlgDestroyTexture( PLGTexture *texture ) {
 
 	CallGfxFunction( DeleteTexture, texture );
 
-	pl_free( texture );
+	PlFree( texture );
 }
 
 /**

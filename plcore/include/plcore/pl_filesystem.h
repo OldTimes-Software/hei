@@ -30,7 +30,24 @@ typedef enum PLFileSeek {
 #endif
 } PLFileSeek;
 
+typedef enum PLFileMemoryBufferType {
+	PL_FILE_MEMORYBUFFERTYPE_COPY,      /* creates a copy of the given input and takes ownership */
+	PL_FILE_MEMORYBUFFERTYPE_OWNER,     /* takes ownership of the input and frees on close */
+	PL_FILE_MEMORYBUFFERTYPE_UNMANAGED, /* doesn't free on close */
+} PLFileMemoryBufferType;
+
+typedef enum PLFileSystemMountType {
+	PL_FS_MOUNT_DIR,
+	PL_FS_MOUNT_PACKAGE,
+} PLFileSystemMountType;
+
 typedef struct PLFileSystemMount PLFileSystemMount;
+
+#ifdef PL_FILESYSTEM_64
+typedef int64_t PLFileOffset;
+#else
+typedef int32_t PLFileOffset;
+#endif
 
 PL_EXTERN_C
 
@@ -42,6 +59,8 @@ PL_EXTERN const char *PlGetWorkingDirectory( void );
 PL_EXTERN void PlSetWorkingDirectory( const char *path );
 
 PL_EXTERN char *PlGetApplicationDataDirectory( const char *app_name, char *out, size_t n );
+
+PL_EXTERN bool PlPathEndsInSlash( const char *p );
 
 PL_EXTERN void PlStripExtension( char *dest, size_t length, const char *in );
 
@@ -60,6 +79,7 @@ PL_EXTERN bool PlCreatePath( const char *path );
 
 // File I/O ...
 
+PL_EXTERN PLFile *PlCreateFileFromMemory( const char *path, void *buf, size_t bufSize, PLFileMemoryBufferType bufType );
 PL_EXTERN PLFile *PlOpenLocalFile( const char *path, bool cache );
 PL_EXTERN PLFile *PlOpenFile( const char *path, bool cache );
 PL_EXTERN void PlCloseFile( PLFile *ptr );
@@ -78,7 +98,7 @@ PL_EXTERN const char *PlGetFilePath( const PLFile *ptr );
 PL_EXTERN const uint8_t *PlGetFileData( const PLFile *ptr );
 PL_EXTERN time_t PlGetFileTimeStamp( PLFile *ptr );
 PL_EXTERN size_t PlGetFileSize( const PLFile *ptr );
-PL_EXTERN size_t PlGetFileOffset( const PLFile *ptr );
+PL_EXTERN PLFileOffset PlGetFileOffset( const PLFile *ptr );
 
 PL_EXTERN size_t PlReadFile( PLFile *ptr, void *dest, size_t size, size_t count );
 
@@ -87,10 +107,15 @@ PL_EXTERN int16_t PlReadInt16( PLFile *ptr, bool big_endian, bool *status );
 PL_EXTERN int32_t PlReadInt32( PLFile *ptr, bool big_endian, bool *status );
 PL_EXTERN int64_t PlReadInt64( PLFile *ptr, bool big_endian, bool *status );
 
+PL_EXTERN float PlReadFloat32( PLFile *ptr, bool big_endian, bool *status );
+PL_EXTERN double PlReadFloat64( PLFile *ptr, bool big_endian, bool *status );
+
 PL_EXTERN char *PlReadString( PLFile *ptr, char *str, size_t size );
 
-PL_EXTERN bool PlFileSeek( PLFile *ptr, long int pos, PLFileSeek seek );
+PL_EXTERN bool PlFileSeek( PLFile *ptr, PLFileOffset pos, PLFileSeek seek );
 PL_EXTERN void PlRewindFile( PLFile *ptr );
+
+PL_EXTERN const void *PlCacheFile( PLFile *file );
 
 /** FS Mounting **/
 
@@ -99,6 +124,9 @@ PL_EXTERN PLFileSystemMount *PlMountLocation( const char *path );
 
 PL_EXTERN void PlClearMountedLocation( PLFileSystemMount *location );
 PL_EXTERN void PlClearMountedLocations( void );
+
+PL_EXTERN PLFileSystemMountType PlGetMountLocationType( const PLFileSystemMount *fileSystemMount );
+PL_EXTERN const char *PlGetMountLocationPath( const PLFileSystemMount *fileSystemMount );
 
 /****/
 

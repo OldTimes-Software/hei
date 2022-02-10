@@ -16,7 +16,7 @@
 #define CAMERA_DEFAULT_FAR 1000.f
 
 PLGCamera *PlgCreateCamera( void ) {
-	PLGCamera *camera = ( PLGCamera * ) pl_calloc( 1, sizeof( PLGCamera ) );
+	PLGCamera *camera = ( PLGCamera * ) PlCAlloc( 1, sizeof( PLGCamera ), false );
 	if ( camera == NULL ) {
 		return NULL;
 	}
@@ -56,8 +56,8 @@ void PlgDestroyCamera( PLGCamera *camera ) {
 
 	CallGfxFunction( DestroyCamera, camera );
 
-	pl_free( camera->viewport.buffer );
-	pl_free( camera );
+	PlFree( camera->viewport.buffer );
+	PlFree( camera );
 }
 
 /**

@@ -124,7 +124,7 @@ static bool TIM_ReadFile( PLFile *fin, PLImage *out ) {
 			goto ERR_CLEANUP;
 		}
 
-		palette = pl_calloc( palette_size, sizeof( uint16_t ) );
+		palette = PlCAlloc( palette_size, sizeof( uint16_t ), false );
 		if ( palette == NULL ) {
 			goto ERR_CLEANUP;
 		}
@@ -150,7 +150,7 @@ static bool TIM_ReadFile( PLFile *fin, PLImage *out ) {
 
 	/* Read in the image data. */
 	size_t image_data_len = image_info.image_size - sizeof( image_info );
-	image_data = pl_malloc( image_data_len );
+	image_data = PlMAllocA( image_data_len );
 	if ( image_data == NULL ) {
 		goto ERR_CLEANUP;
 	}
@@ -196,12 +196,12 @@ static bool TIM_ReadFile( PLFile *fin, PLImage *out ) {
 	out->size = PlGetImageSize( out->format, out->width, out->height );
 	out->levels = 1;
 
-	out->data = pl_calloc( out->levels, sizeof( uint8_t * ) );
+	out->data = PlCAlloc( out->levels, sizeof( uint8_t * ), false );
 	if ( out->data == NULL ) {
 		goto ERR_CLEANUP;
 	}
 
-	out->data[ 0 ] = pl_calloc( out->size, sizeof( uint8_t ) );
+	out->data[ 0 ] = PlCAlloc( out->size, sizeof( uint8_t ), false );
 	if ( out->data[ 0 ] == NULL ) {
 		goto ERR_CLEANUP;
 	}
@@ -267,8 +267,8 @@ static bool TIM_ReadFile( PLFile *fin, PLImage *out ) {
 
 	out->colour_format = PL_COLOURFORMAT_ABGR;
 
-	pl_free( image_data );
-	pl_free( palette );
+	PlFree( image_data );
+	PlFree( palette );
 
 	return true;
 
@@ -278,36 +278,28 @@ UNEXPECTED_EOF:
 ERR_CLEANUP:
 
 	if ( out->data != NULL ) {
-		pl_free( out->data[ 0 ] );
-		pl_free( out->data );
+		PlFree( out->data[ 0 ] );
+		PlFree( out->data );
 	}
 
-	pl_free( image_data );
-	pl_free( palette );
+	PlFree( image_data );
+	PlFree( palette );
 
 	return false;
 }
 
-PLImage *PlLoadTimImage( const char *path ) {
-	PLFile *file = PlOpenFile( path, false );
-	if ( file == NULL ) {
-		return NULL;
-	}
-
+PLImage *PlParseTimImage( PLFile *file ) {
 	if ( !TIM_FormatCheck( file ) ) {
-		PlCloseFile( file );
 		return NULL;
 	}
 
 	PlRewindFile( file );
 
-	PLImage *image = pl_calloc( 1, sizeof( PLImage ) );
+	PLImage *image = PlCAllocA( 1, sizeof( PLImage ) );
 	if ( !TIM_ReadFile( file, image ) ) {
-		pl_free( image );
+		PlFree( image );
 		image = NULL;
 	}
-
-	PlCloseFile( file );
 
 	return image;
 }

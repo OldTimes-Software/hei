@@ -51,10 +51,10 @@ static bool XDF_LoadHeader( PLFile *filePtr, XDFHeader *xdfOut ) {
 		return false;
 	}
 
-	header.tableBuffer = pl_malloc( sizeof( char ) * header.tableLength );
+	header.tableBuffer = PlMAllocA( sizeof( char ) * header.tableLength );
 
 	if ( plReadFile( filePtr, header.tableBuffer, sizeof( char ), header.tableLength ) != header.tableLength ) {
-		pl_free( header.tableBuffer );
+		PlFree( header.tableBuffer );
 		return false;
 	}
 
@@ -65,7 +65,7 @@ static bool XDF_LoadHeader( PLFile *filePtr, XDFHeader *xdfOut ) {
  * Navigates the header file table and splits it up into an array.
  */
 static XDFString *XDF_CreateFileTable( const XDFHeader *header ) {
-	XDFString *fileList = pl_malloc( header->numTableIndices * sizeof( XDFString ) );
+	XDFString *fileList = PlMAllocA( header->numTableIndices * sizeof( XDFString ) );
 	XDFString *curIndex = fileList;
 	for ( unsigned int i = 0, j = 0; i < header->tableLength; ++i ) {
 		curIndex->string[ j++ ] = header->tableBuffer[ i ];
@@ -99,7 +99,7 @@ PLPackage *plLoadXDFPackage( const char* path ) {
 	XDFString *fileTable = XDF_CreateFileTable( &header );
 
 	/* now free up the table buffer, as we don't need it anymore */
-	pl_free( header.tableBuffer );
+	PlFree( header.tableBuffer );
 
 	if ( fileTable == NULL ) {
 

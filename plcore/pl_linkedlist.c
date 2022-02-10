@@ -5,6 +5,7 @@
  */
 
 #include <plcore/pl.h>
+#include <plcore/pl_linkedlist.h>
 
 typedef struct PLLinkedListNode {
 	struct PLLinkedListNode *next;
@@ -20,11 +21,11 @@ typedef struct PLLinkedList {
 } PLLinkedList;
 
 PLLinkedList *PlCreateLinkedList( void ) {
-	return pl_calloc( 1, sizeof( PLLinkedList ) );
+	return PlCAllocA( 1, sizeof( PLLinkedList ) );
 }
 
 PLLinkedListNode *PlInsertLinkedListNode( PLLinkedList *list, void *userPtr ) {
-	PLLinkedListNode *node = pl_malloc( sizeof( PLLinkedListNode ) );
+	PLLinkedListNode *node = PlMAlloc( sizeof( PLLinkedListNode ), true );
 	if( list->root == NULL ) {
 		list->root = node;
 	}
@@ -60,6 +61,11 @@ void *PlGetLinkedListNodeUserData( PLLinkedListNode *node ) {
 	return node->userPtr;
 }
 
+void PlSetLinkedListNodeUserData( PLLinkedListNode *node, void *userPtr )
+{
+	node->userPtr = userPtr;
+}
+
 /**
  * Destroys the specified node and removes it from the list.
  * Keep in mind this does not free any user data!
@@ -83,7 +89,7 @@ void PlDestroyLinkedListNode( PLLinkedList *list, PLLinkedListNode *node ) {
 
 	list->numNodes--;
 
-	pl_free( node );
+	PlFree( node );
 }
 
 void PlDestroyLinkedListNodes( PLLinkedList *list ) {
@@ -97,7 +103,7 @@ void PlDestroyLinkedList( PLLinkedList *list ) {
 	}
 
 	PlDestroyLinkedListNodes( list );
-	pl_free( list );
+	PlFree( list );
 }
 
 unsigned int PlGetNumLinkedListNodes( PLLinkedList *list ) {
@@ -106,4 +112,24 @@ unsigned int PlGetNumLinkedListNodes( PLLinkedList *list ) {
 
 PLLinkedList *PlGetLinkedListNodeContainer( PLLinkedListNode *node ) {
 	return node->listParent;
+}
+
+/**
+ * Helper function for iterating through a linked list.
+ */
+void PlIterateLinkedList( PLLinkedList *linkedList, PLLinkedListIteratorCallback callbackHandler )
+{
+	PLLinkedListNode *listNode = PlGetFirstNode( linkedList );
+	while( listNode != NULL )
+	{
+		void *userData = PlGetLinkedListNodeUserData( listNode );
+		listNode = PlGetNextLinkedListNode( listNode );
+
+		bool breakEarly = false;
+		callbackHandler( userData, &breakEarly );
+		if ( breakEarly )
+		{
+			break;
+		}
+	}
 }

@@ -34,8 +34,12 @@ enum {
 	TEST_RETURN_FATAL,
 };
 
-#define FUNC_TEST( NAME )   uint8_t test_##NAME( void ) { printf( " Starting " #NAME );
-#define FUNC_TEST_END()     return TEST_RETURN_SUCCESS; }
+#define FUNC_TEST( NAME )         \
+	uint8_t test_##NAME( void ) { \
+		printf( " Starting " #NAME "\n" );
+#define FUNC_TEST_END()         \
+	return TEST_RETURN_SUCCESS; \
+	}
 
 /*============================================================
  * CONSOLE
@@ -47,65 +51,91 @@ void CB_test_cmd( unsigned int argc, char **argv ) {
 }
 
 FUNC_TEST( RegisterConsoleCommand )
-    PlRegisterConsoleCommand( "test_cmd", CB_test_cmd, "testing" );
-    PLConsoleCommand *cmd = PlGetConsoleCommand( "test_cmd" );
-    if ( cmd == NULL ) {
-	    printf( "test_cmd was not registered!\n" );
-	    return TEST_RETURN_FAILURE;
-    }
-    PlParseConsoleString( "test_cmd" );
-    if ( !test_cmd_called ) {
-	    printf( "Failed to call \"test_cmd\" command!\n" );
-	    return TEST_RETURN_FAILURE;
-    }
-    test_cmd_called = false;
+PlRegisterConsoleCommand( "test_cmd", CB_test_cmd, "testing" );
+PLConsoleCommand *cmd = PlGetConsoleCommand( "test_cmd" );
+if ( cmd == NULL ) {
+	printf( "test_cmd was not registered!\n" );
+	return TEST_RETURN_FAILURE;
+}
+PlParseConsoleString( "test_cmd" );
+if ( !test_cmd_called ) {
+	printf( "Failed to call \"test_cmd\" command!\n" );
+	return TEST_RETURN_FAILURE;
+}
+test_cmd_called = false;
 FUNC_TEST_END()
 
 FUNC_TEST( GetConsoleCommands )
-    PLConsoleCommand **cmds;
-    size_t numCmds;
-    PlGetConsoleCommands( &cmds, &numCmds );
-    if ( numCmds < 1 ) {
-	    printf( "Did not receive any commands!\n" );
-	    return TEST_RETURN_FAILURE;
-    }
-    if ( cmds == NULL ) {
-	    printf( "Returned null cmds list!\n" );
-	    return TEST_RETURN_FAILURE;
-    }
-    bool foundResult = false;
-    for ( unsigned int i = 0; i < numCmds; ++i ) {
-        const PLConsoleCommand *cmd = cmds[ i ];
-	    if ( strcmp( "test_cmd", cmd->cmd ) != 0 ) {
-		    continue;
-	    }
-	    foundResult = true;
-    }
-    if ( !foundResult ) {
-	    printf( "Failed to find test_cmd!\n" );
-	    return TEST_RETURN_FAILURE;
-    }
+PLConsoleCommand **cmds;
+size_t numCmds;
+PlGetConsoleCommands( &cmds, &numCmds );
+if ( numCmds < 1 ) {
+	printf( "Did not receive any commands!\n" );
+	return TEST_RETURN_FAILURE;
+}
+if ( cmds == NULL ) {
+	printf( "Returned null cmds list!\n" );
+	return TEST_RETURN_FAILURE;
+}
+bool foundResult = false;
+for ( unsigned int i = 0; i < numCmds; ++i ) {
+	const PLConsoleCommand *cmd = cmds[ i ];
+	if ( strcmp( "test_cmd", cmd->cmd ) != 0 ) {
+		continue;
+	}
+	foundResult = true;
+}
+if ( !foundResult ) {
+	printf( "Failed to find test_cmd!\n" );
+	return TEST_RETURN_FAILURE;
+}
 FUNC_TEST_END()
 
 FUNC_TEST( GetConsoleCommand )
-    const PLConsoleCommand *cmd = PlGetConsoleCommand( "test_cmd" );
-    if ( cmd == NULL ) {
-	    printf( "Failed to get test_cmd!\n" );
-	    return TEST_RETURN_FAILURE;
-    }
+const PLConsoleCommand *cmd = PlGetConsoleCommand( "test_cmd" );
+if ( cmd == NULL ) {
+	printf( "Failed to get test_cmd!\n" );
+	return TEST_RETURN_FAILURE;
+}
+FUNC_TEST_END()
+
+FUNC_TEST( StringChunk )
+static const char *testString = "thisthisthisthisthisthis";
+char *c = pl_strchunksplit( testString, 4, " " );
+if ( c == NULL ) {
+	printf( "Returned null!\n" );
+	return EXIT_FAILURE;
+}
+bool status = ( strcmp( c, "this this this this this this " ) == 0 );
+PlFree( c );
+if ( !status ) {
+	printf( "Failed to split string!\n" );
+	return EXIT_FAILURE;
+}
 FUNC_TEST_END()
 
 int main( int argc, char **argv ) {
 	printf( "Starting tests...\n" );
 
-#define CALL_FUNC_TEST( NAME ) \
-    { int ret = test_##NAME(); \
-		if ( ret != TEST_RETURN_SUCCESS ) { printf( "Failed on " #NAME "!\n"); \
-			if ( ret == TEST_RETURN_FATAL ) { return EXIT_FAILURE; } } }
+	PlInitialize( argc, argv );
+
+#define CALL_FUNC_TEST( NAME )                                       \
+	{                                                                \
+		int ret = test_##NAME();                                     \
+		if ( ret != TEST_RETURN_SUCCESS ) {                          \
+			printf( "Failed on " #NAME "!\n" );                      \
+			if ( ret == TEST_RETURN_FATAL ) { return EXIT_FAILURE; } \
+		}                                                            \
+	}
 
 	CALL_FUNC_TEST( RegisterConsoleCommand )
 	CALL_FUNC_TEST( GetConsoleCommands )
 	CALL_FUNC_TEST( GetConsoleCommand )
 
-    return EXIT_SUCCESS;
+	/* string */
+	CALL_FUNC_TEST( StringChunk )
+
+	printf( "\nAll tests passed successfully!\n" );
+
+	return EXIT_SUCCESS;
 }

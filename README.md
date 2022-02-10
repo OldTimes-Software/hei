@@ -1,6 +1,10 @@
+<div align="center">
+
 ![Logo](resources/logo.png)
 
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FTalonBraveInfo%2Fplatform.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FTalonBraveInfo%2Fplatform?ref=badge_shield) [![CodeFactor Status](https://www.codefactor.io/Content/badges/D.svg)](https://www.codefactor.io/repository/github/talonbraveinfo/platform)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FTalonBraveInfo%2Fplatform.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FTalonBraveInfo%2Fplatform?ref=badge_shield) [![CodeFactor](https://www.codefactor.io/repository/github/oldtimes-software/hei/badge)](https://www.codefactor.io/repository/github/oldtimes-software/hei)
+
+</div>
 
 A collection of relatively small utility libraries written in C11 that can be used as the foundation for various applications,
 perhaps more ideally games.

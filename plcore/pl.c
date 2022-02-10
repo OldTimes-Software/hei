@@ -69,6 +69,8 @@ typedef struct PLArguments {
 
 PLArguments pl_arguments;
 
+void PlInitializeMatrixStacks_( void );
+
 PLFunctionResult PlInitialize( int argc, char **argv ) {
 	static bool is_initialized = false;
 	if ( !is_initialized ) {
@@ -86,6 +88,7 @@ PLFunctionResult PlInitialize( int argc, char **argv ) {
 	}
 
 	PlInitPackageSubSystem();
+	PlInitializeMatrixStacks_();
 
 	is_initialized = true;
 
@@ -477,6 +480,7 @@ static PLPluginExportTable exportTable = {
         .ScanDirectory = PlScanDirectory,
         .CreateDirectory = PlCreateDirectory,
         .CreatePath = PlCreatePath,
+        .CreateFileFromMemory = PlCreateFileFromMemory,
         .OpenLocalFile = PlOpenLocalFile,
         .OpenFile = PlOpenFile,
         .CloseFile = PlCloseFile,
@@ -493,6 +497,7 @@ static PLPluginExportTable exportTable = {
         .ReadString = PlReadString,
         .FileSeek = PlFileSeek,
         .RewindFile = PlRewindFile,
+        .CacheFile = PlCacheFile,
 
         .RegisterPackageLoader = PlRegisterPackageLoader,
         .RegisterImageLoader = PlRegisterImageLoader,
@@ -503,7 +508,6 @@ static PLPluginExportTable exportTable = {
         .InvertImageColour = PlInvertImageColour,
         .ReplaceImageColour = PlReplaceImageColour,
         .FlipImageVertical = PlFlipImageVertical,
-        .GetNumberOfColourChannels = PlGetNumberOfColourChannels,
         .GetImageSize = PlGetImageSize,
 
         .CreatePackageHandle = PlCreatePackageHandle,
@@ -529,13 +533,15 @@ static PLPluginExportTable exportTable = {
         .ParseToken = PlParseToken,
         .ParseInteger = PlParseInteger,
         .ParseFloat = PlParseFloat,
+
+        .GenerateChecksumCRC32 = pl_crc32,
 };
 
 const PLPluginExportTable *PlGetExportTable( void ) {
-	exportTable.MAlloc = pl_malloc;
-	exportTable.CAlloc = pl_calloc;
-	exportTable.ReAlloc = pl_realloc;
-	exportTable.Free = pl_free;
+	exportTable.MAlloc = PlMAlloc;
+	exportTable.CAlloc = PlCAlloc;
+	exportTable.ReAlloc = PlReAlloc;
+	exportTable.Free = PlFree;
 	return &exportTable;
 }
 
@@ -571,7 +577,7 @@ bool PlRegisterPlugin( const char *path ) {
 		}
 	}
 
-	if ( PlGetFunctionResult() != PL_RESULT_SUCCESS ) {
+	if ( RegisterPlugin == NULL || InitializePlugin == NULL || PlGetFunctionResult() != PL_RESULT_SUCCESS ) {
 		PlUnloadLibrary( library );
 		return false;
 	}
@@ -582,7 +588,7 @@ bool PlRegisterPlugin( const char *path ) {
 		plugins = PlCreateLinkedList();
 	}
 
-	PLPlugin *plugin = pl_malloc( sizeof( PLPlugin ) );
+	PLPlugin *plugin = PlMAllocA( sizeof( PLPlugin ) );
 	plugin->initFunction = InitializePlugin;
 	plugin->libPtr = library;
 	plugin->node = PlInsertLinkedListNode( plugins, plugin );

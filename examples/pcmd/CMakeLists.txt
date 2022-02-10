@@ -27,6 +27,21 @@ For more information, please refer to <http://unlicense.org>
 
 project( pcmd )
 
-add_executable( pcmd main.c )
+add_executable( pcmd
+        main.c
+
+        ../../extras/core/core_package_clu.c
+        ../../extras/core/core_loader_hgt.c
+
+        ../../extras/doom_wad.c
+        ../../extras/eradicator_rid.c
+        ../../extras/ftactics_pak.c
+        #../../extras/galleon_pkg.c
+        ../../extras/istorm_ibf.c
+        ../../extras/mortyr_hal.c
+        ../../extras/outcast_opk.c
+        ../../extras/outwars_ff.c
+        ../../extras/sentient_vsr.c
+        )
 
 target_link_libraries( pcmd plcore )

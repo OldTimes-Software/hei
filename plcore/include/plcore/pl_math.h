@@ -60,172 +60,110 @@ inline static int PlRoundUp( int num, int multiple ) {
 
 typedef struct PLColour {
 	uint8_t r, g, b, a;
-
-#ifdef __cplusplus
-	PLColour() : PLColour( 255, 255, 255, 255 ) {
-	}
-
-	PLColour( uint8_t c, uint8_t c2, uint8_t c3, uint8_t c4 = 255 ) : r( c ), g( c2 ), b( c3 ), a( c4 ) {
-	}
-
-	PLColour( int c, int c2, int c3, int c4 = 255 ) : PLColour( ( uint8_t ) c, ( uint8_t ) c2, ( uint8_t ) c3, ( uint8_t ) c4 ) {
-	}
-
-	PLColour( float c, float c2, float c3, float c4 = 1 ) : r( PlFloatToByte( c ) ),
-	                                                        g( PlFloatToByte( c2 ) ),
-	                                                        b( PlFloatToByte( c3 ) ),
-	                                                        a( PlFloatToByte( c4 ) ) {
-	}
-
-	inline PLVector4 ToVec4() const {
-		return { PlByteToFloat( r ), PlByteToFloat( g ), PlByteToFloat( b ), PlByteToFloat( a ) };
-	}
-
-	inline void operator*=( const PLColour &v ) {
-		r *= v.r;
-		g *= v.g;
-		b *= v.b;
-		a *= v.a;
-	}
-
-	inline void operator*=( float c ) {
-		r *= PlFloatToByte( c );
-		g *= PlFloatToByte( c );
-		b *= PlFloatToByte( c );
-		a *= PlFloatToByte( c );
-	}
-
-	inline void operator*=( uint8_t c ) {
-		r *= c;
-		g *= c;
-		g *= c;
-		a *= c;
-	}
-
-	inline void operator+=( const PLColour &v ) {
-		r += v.r;
-		g += v.g;
-		b += v.b;
-		a += v.a;
-	}
-
-	inline void operator+=( float c ) {
-		r += PlFloatToByte( c );
-		g += PlFloatToByte( c );
-		b += PlFloatToByte( c );
-		a += PlFloatToByte( c );
-	}
-
-	inline void operator-=( const PLColour &v ) {
-		r -= v.r;
-		g -= v.g;
-		b -= v.b;
-		a -= v.a;
-	}
-
-	inline void operator-=( float c ) {
-		r -= PlFloatToByte( c );
-		g -= PlFloatToByte( c );
-		b -= PlFloatToByte( c );
-		a -= PlFloatToByte( c );
-	}
-
-	inline void operator/=( const PLColour &v ) {
-		r /= v.r;
-		g /= v.g;
-		b /= v.b;
-		a /= v.a;
-	}
-
-	inline void operator/=( float c ) {
-		r /= c;
-		g /= c;
-		b /= c;
-		a /= c;
-	}
-
-	inline PLColour operator-( const PLColour &c ) const {
-		return { r - c.r, g - c.g, b - c.b, a - c.a };
-	}
-
-	inline PLColour operator-( float c ) const {
-		return { r - PlFloatToByte( c ), g - PlFloatToByte( c ), b - PlFloatToByte( c ), a - PlFloatToByte( c ) };
-	}
-
-	inline PLColour operator-( uint8_t c ) const {
-		return { r - c, g - c, b - c, a - c };
-	}
-
-	inline PLColour operator-() const {
-		return PLColour( -r, -g, -b, -a );
-	}
-
-	inline PLColour operator*( const PLColour &v ) const {
-		return PLColour( r * v.r, g * v.g, b * v.b, a * v.a );
-	}
-
-	inline PLColour operator+( const PLColour &v ) const {
-		return PLColour( r + v.r, g + v.g, b + v.b, a + v.a );
-	}
-
-	inline PLColour operator+( float c ) const {
-		return { r + PlFloatToByte( c ), g + PlFloatToByte( c ), b + PlFloatToByte( c ), a + PlFloatToByte( c ) };
-	}
-
-	inline PLColour operator/( const PLColour &v ) const {
-		return { r / v.r, g / v.g, b / v.b, a / v.a };
-	}
-
-	inline PLColour operator/( float c ) const {
-		return PLColour( r / PlFloatToByte( c ), g / PlFloatToByte( c ), b / PlFloatToByte( c ), a / PlFloatToByte( c ) );
-	}
-
-	inline PLColour operator/( uint8_t c ) const {
-		return PLColour( r / c, g / c, b / c, a / c );
-	}
-
-	inline uint8_t &operator[]( const unsigned int i ) {
-		return *( ( &r ) + i );
-	}
-
-	inline bool operator>( const PLColour &v ) const {
-		return ( ( r > v.r ) && ( g > v.g ) && ( b > v.b ) && ( a > v.a ) );
-	}
-
-	inline bool operator<( const PLColour &v ) const {
-		return ( ( r < v.r ) && ( g < v.g ) && ( b < v.b ) && ( a < v.a ) );
-	}
-
-	inline bool operator>=( const PLColour &v ) const {
-		return ( ( r >= v.r ) && ( g >= v.g ) && ( b >= v.b ) && ( a >= v.a ) );
-	}
-
-	inline bool operator<=( const PLColour &v ) const {
-		return ( ( r <= v.r ) && ( g <= v.g ) && ( b <= v.b ) && ( a <= v.a ) );
-	}
-#endif
 } PLColour;
 
-#define PlColourIndex( COLOUR, INDEX ) 		( ( uint8_t * ) &( COLOUR ) )[ INDEX ]
-#define PlColourF32Index( COLOUR, INDEX ) 	( ( float * ) &( COLOUR ) )[ INDEX ]
+#ifdef __cplusplus
+namespace hei {
+	struct Colour : PLColour {
+		Colour() : Colour( 255, 255, 255, 255 ) {}
+		Colour( const uint8_t c[] ) : Colour( c[ 0 ], c[ 1 ], c[ 2 ], c[ 3 ] ) {}
+		Colour( uint8_t c, uint8_t c2, uint8_t c3, uint8_t c4 = 255 ) {
+			r = c;
+			g = c2;
+			b = c3;
+			a = c4;
+		}
+
+		Colour( int c, int c2, int c3, int c4 = 255 ) : Colour( ( uint8_t ) c, ( uint8_t ) c2, ( uint8_t ) c3, ( uint8_t ) c4 ) {}
+		Colour( float c, float c2, float c3, float c4 = 1.0f ) : Colour( PlFloatToByte( c ), PlFloatToByte( c2 ), PlFloatToByte( c3 ), PlFloatToByte( c4 ) ) {}
+
+		inline PLVector4 ToVec4() const {
+			return { PlByteToFloat( r ), PlByteToFloat( g ), PlByteToFloat( b ), PlByteToFloat( a ) };
+		}
+
+		inline void operator*=( const PLColour &v ) {
+			r *= v.r;
+			g *= v.g;
+			b *= v.b;
+			a *= v.a;
+		}
+		inline void operator*=( uint8_t c ) {
+			r *= c;
+			g *= c;
+			g *= c;
+			a *= c;
+		}
+		inline void operator+=( const PLColour &v ) {
+			r += v.r;
+			g += v.g;
+			b += v.b;
+			a += v.a;
+		}
+		inline void operator-=( const PLColour &v ) {
+			r -= v.r;
+			g -= v.g;
+			b -= v.b;
+			a -= v.a;
+		}
+		inline void operator/=( const Colour &v ) {
+			r /= v.r;
+			g /= v.g;
+			b /= v.b;
+			a /= v.a;
+		}
+
+		inline Colour operator-( const Colour &c ) const {
+			return { r - c.r, g - c.g, b - c.b, a - c.a };
+		}
+		inline Colour operator-( uint8_t c ) const {
+			return { r - c, g - c, b - c, a - c };
+		}
+		inline Colour operator-() const {
+			return Colour( -r, -g, -b, -a );
+		}
+		inline Colour operator*( const Colour &v ) const {
+			return Colour( r * v.r, g * v.g, b * v.b, a * v.a );
+		}
+		inline Colour operator+( const Colour &v ) const {
+			return Colour( r + v.r, g + v.g, b + v.b, a + v.a );
+		}
+		inline Colour operator/( const Colour &v ) const {
+			return { r / v.r, g / v.g, b / v.b, a / v.a };
+		}
+		inline Colour operator/( uint8_t c ) const {
+			return Colour( r / c, g / c, b / c, a / c );
+		}
+		inline uint8_t &operator[]( const unsigned int i ) {
+			return *( ( &r ) + i );
+		}
+		inline bool operator>( const Colour &v ) const {
+			return ( ( r > v.r ) && ( g > v.g ) && ( b > v.b ) && ( a > v.a ) );
+		}
+		inline bool operator<( const Colour &v ) const {
+			return ( ( r < v.r ) && ( g < v.g ) && ( b < v.b ) && ( a < v.a ) );
+		}
+		inline bool operator>=( const Colour &v ) const {
+			return ( ( r >= v.r ) && ( g >= v.g ) && ( b >= v.b ) && ( a >= v.a ) );
+		}
+		inline bool operator<=( const Colour &v ) const {
+			return ( ( r <= v.r ) && ( g <= v.g ) && ( b <= v.b ) && ( a <= v.a ) );
+		}
+	};
+}// namespace hei
+#endif
+
+#define PlColourIndex( COLOUR, INDEX ) ( ( uint8_t * ) &( COLOUR ) )[ INDEX ]
+#define PlColourF32Index( COLOUR, INDEX ) ( ( float * ) &( COLOUR ) )[ INDEX ]
 
 typedef struct PLColourF32 {
 	float r, g, b, a;
 } PLColourF32;
-static inline PLColour PlColourF32ToU8( const PLColourF32 *in ) {
-	return ( PLColour ){
-	        PlFloatToByte( in->r ),
-	        PlFloatToByte( in->g ),
-	        PlFloatToByte( in->b ),
-	        PlFloatToByte( in->a ) };
-}
-static inline PLColourF32 PlColourU8ToF32( const PLColour *in ) {
-	return ( PLColourF32 ){
-	        PlByteToFloat( in->r ),
-	        PlByteToFloat( in->g ),
-	        PlByteToFloat( in->b ),
-	        PlByteToFloat( in->a ) };
-}
+
+PLColour PlColourF32ToU8( const PLColourF32 *in );
+PLColourF32 PlColourU8ToF32( const PLColour *in );
+
+PLColour PlAddColour( const PLColour *c, const PLColour *c2 );
+PLColourF32 PlAddColourF32( const PLColourF32 *c, const PLColourF32 *c2 );
 
 inline static PLColour PlCreateColour4B( uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
 	PLColour c = { r, g, b, a };
@@ -261,21 +199,6 @@ inline static void PlClearColour( PLColour *c ) {
 
 inline static bool PlCompareColour( PLColour c, PLColour c2 ) {
 	return ( ( c.r == c2.r ) && ( c.g == c2.g ) && ( c.b == c2.b ) && ( c.a == c2.a ) );
-}
-
-inline static PLColour PlAddColour( const PLColour *c, PLColour *c2 ) {
-	return ( PLColour ){
-	        c->r + c2->r,
-	        c->g + c2->g,
-	        c->b + c2->b,
-	        c->a + c2->a };
-}
-inline static PLColourF32 PlAddColourF32( const PLColourF32 *c, const PLColourF32 *c2 ) {
-	return ( PLColourF32 ){
-	        c->r + c2->r,
-	        c->g + c2->g,
-	        c->b + c2->b,
-	        c->a + c2->a };
 }
 
 inline static void PlMultiplyColour( PLColour *c, PLColour c2 ) {

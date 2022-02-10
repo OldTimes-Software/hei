@@ -6,26 +6,24 @@
 
 #pragma once
 
-#include <stdarg.h>
+PL_EXTERN_C
 
-#if 0
-inline static void plGetStringExtension(char *out, const char *in, unsigned int length) {
-    const char *s = strrchr(in, '.');type
-    if(!s || s[0] == '\0') {
-        return;
-    }
-
-    strncpy(out, s + 1, length);
-}
-
-inline static void plStripStringExtension(char *out, const char *in, unsigned int length) {
-    const char *s = strrchr(in, '.');
-    while(in < s) {
-        *out++ = *in++;
-    }
-    *out = 0;
-}
+#define PL_FMT_float  "%f"
+#define PL_FMT_double "%lf"
+#define PL_FMT_int16  "%hd"
+#define PL_FMT_uint16 "%hu"
+#define PL_FMT_int32  "%d"
+#define PL_FMT_uint32 "%u"
+#if defined( __x86_64__ )
+#define PL_FMT_int64  "%ld"
+#define PL_FMT_uint64 "%lu"
+#else
+#define PL_FMT_int64  "%lld"
+#define PL_FMT_uint64 "%llu"
 #endif
+#define PL_FMT_hex     "%x"
+#define PL_FMT_string  "%s"
+#define PL_FMT_address "%p"
 
 char *pl_itoa( int val, char *buf, size_t len, int base );
 
@@ -51,17 +49,20 @@ int pl_vscprintf( const char *format, va_list pArgs );
 unsigned int pl_strcnt( const char *s, char c );
 unsigned int pl_strncnt( const char *s, char c, unsigned int n );
 
-char *PlStrInsert( const char *string, char **buf, size_t *bufSize, size_t *maxBufSize );
+char *pl_strchunksplit( const char *string, unsigned int length, const char *seperator );
+char *pl_strinsert( const char *string, char **buf, size_t *bufSize, size_t *maxBufSize );
 
 /**
  * http://www.cse.yorku.ca/~oz/hash.html#sdbm
  */
-static inline unsigned long PlStrHash_sdbm( const unsigned char *str ) {
+static inline unsigned long pl_strhash_sdbm( const unsigned char *str ) {
 	unsigned long hash = 0;
 	int c;
-	while( ( c = *str++ ) ) {
+	while ( ( c = *str++ ) ) {
 		hash = c + ( hash << 6 ) + ( hash << 16 ) - hash;
 	}
 
 	return hash;
 }
+
+PL_EXTERN_C_END

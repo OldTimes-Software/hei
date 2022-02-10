@@ -39,6 +39,8 @@ static PLGDriverExportTable exportTable = {
         .SetTextureAnisotropy = PlgSetTextureAnisotropy,
         .SetTextureEnvironmentMode = PlgSetTextureEnvironmentMode,
         .SetTextureFlags = PlgSetTextureFlags,
+
+        .GetShaderCacheLocation = PlgGetShaderCacheLocation,
 };
 
 bool PlgRegisterDriver( const char *path ) {
@@ -48,7 +50,7 @@ bool PlgRegisterDriver( const char *path ) {
 
 	PLLibrary *library = PlLoadLibrary( path, false );
 	if ( library == NULL ) {
-		GfxLog( "Failed to load library!\nPL: %s\n", PlGetError() );
+		GfxLog( "Failed to load library: %s\n", PlGetError() );
 		return false;
 	}
 
@@ -83,9 +85,9 @@ bool PlgRegisterDriver( const char *path ) {
 		InitializeDriver = ( PLGDriverInitializationFunction ) PlGetLibraryProcedure( library, PLG_DRIVER_INIT_FUNCTION );
 	}
 
-	if ( PlGetFunctionResult() != PL_RESULT_SUCCESS ) {
-		PlUnloadLibrary( library );
+	if ( RegisterDriver == NULL || InitializeDriver == NULL || PlGetFunctionResult() != PL_RESULT_SUCCESS ) {
         GfxLog( "Failed to load library!\nPL: %s\n", PlGetError() );
+		PlUnloadLibrary( library );
 		return false;
 	}
 
@@ -180,10 +182,10 @@ PLFunctionResult PlgSetDriver( const char *mode ) {
 
 	GfxLog( "Mode \"%s\" initialized!\n", mode );
 
-	pl_free( gfx_state.tmu );
+	PlFree( gfx_state.tmu );
 
 	unsigned int numUnits = PlgGetMaxTextureUnits();
-    gfx_state.tmu = ( PLGTextureMappingUnit * ) pl_calloc( numUnits, sizeof( PLGTextureMappingUnit ) );
+    gfx_state.tmu = ( PLGTextureMappingUnit * ) PlCAllocA( numUnits, sizeof( PLGTextureMappingUnit ) );
     for ( unsigned int i = 0; i < numUnits; i++ ) {
         gfx_state.tmu[ i ].current_envmode = PLG_TEXTUREMODE_REPLACE;
     }

@@ -70,6 +70,14 @@ PLConsoleVariable *PlRegisterConsoleVariable( const char *name, const char *def,
                                               void ( *CallbackFunction )( const PLConsoleVariable *variable ),
                                               const char *desc );
 
+/* fetch and cache console var for trivial lookup */
+#define PL_GET_CVAR( NAME, STORE )                    \
+	static PLConsoleVariable *( STORE ) = NULL;       \
+	if ( ( STORE ) == NULL ) {                        \
+		( STORE ) = PlGetConsoleVariable( ( NAME ) ); \
+		assert( ( STORE ) != NULL );                  \
+	}
+
 #endif /* !defined( PL_COMPILE_PLUGIN ) */
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +96,7 @@ PL_EXTERN void PlGetConsoleCommands( PLConsoleCommand ***cmds, size_t *num_cmds 
 PL_EXTERN void PlRegisterConsoleCommand( const char *name, void ( *CallbackFunction )( unsigned int argc, char *argv[] ), const char *description );
 PL_EXTERN PLConsoleCommand *PlGetConsoleCommand( const char *name );
 
-PL_EXTERN void PlSetConsoleOutputCallback( void ( *Callback )( int level, const char *msg ) );
+PL_EXTERN void PlSetConsoleOutputCallback( void ( *Callback )( int level, const char *msg, PLColour colour ) );
 
 PL_EXTERN const char **PlAutocompleteConsoleString( const char *string, unsigned int *numElements );
 PL_EXTERN void PlParseConsoleString( const char *string );

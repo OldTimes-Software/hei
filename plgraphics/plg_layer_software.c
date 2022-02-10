@@ -37,8 +37,8 @@ static void SWClearBuffers( unsigned int buffers ) {
 /** camera **/
 
 static uint8_t *SWCreateDisplayBuffer( PLGViewport *viewport ) {
-	pl_free( viewport->buffer );
-	viewport->buffer = ( uint8_t * ) pl_malloc( SWGetDisplayBufferSize( viewport ) );
+	PlFree( viewport->buffer );
+	viewport->buffer = ( uint8_t * ) PlMAllocA( SWGetDisplayBufferSize( viewport ) );
 	viewport->oldW = viewport->w;
 	viewport->oldH = viewport->h;
 	return viewport->buffer;

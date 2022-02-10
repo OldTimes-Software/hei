@@ -1,4 +1,8 @@
-/* Copyright (C) 2021 Mark E Sowden <markelswo@gmail.com> */
+/**
+ * Hei Platform Library
+ * Copyright (C) 2017-2021 Mark E Sowden <hogsy@oldtimes-software.com>
+ * This software is licensed under MIT. See LICENSE for more details.
+ */
 
 #include "plugin.h"
 

@@ -14,10 +14,10 @@ PL_EXPORT const PLPluginDescription *PLQueryPlugin( void ) {
 	return &pluginDesc;
 }
 
-PLImage *VTF_LoadImage( const char *path );
+PLImage *VTF_ParseImage( PLFile *file );
 
 PL_EXPORT void PLInitializePlugin( const PLPluginExportTable *functionTable ) {
 	gInterface = functionTable;
 
-	gInterface->RegisterImageLoader( "vtf", VTF_LoadImage );
+	gInterface->RegisterImageLoader( "vtf", VTF_ParseImage );
 }

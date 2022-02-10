@@ -8,6 +8,19 @@
 
 #include <float.h>
 
+float PlComputeSphereFromCoords( const PLVector3 *vertices, unsigned int numVertices ) {
+	float maxRadius = 0.0f;
+	for ( unsigned int i = 0; i < numVertices; ++i ) {
+		float radius = PlVector3Length( vertices[ i ] );
+		if ( radius > maxRadius ) {
+			maxRadius = radius;
+		}
+	}
+
+	return maxRadius;
+}
+
+/* todo: should be COMPUTE not GENERATE!!! */
 PLCollisionAABB PlGenerateAabbFromCoords( const PLVector3 *vertices, unsigned int numVertices, bool absolute ) {
 	PLCollisionAABB bounds;
 	if ( absolute ) {

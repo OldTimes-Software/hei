@@ -5,7 +5,6 @@
  */
 
 #include <plgraphics/plg_polygon.h>
-#include "plg_private.h"
 
 typedef struct PLGPolygon {
 	PLGTexture *texture;
@@ -20,7 +19,7 @@ typedef struct PLGPolygon {
 } PLGPolygon;
 
 PLGPolygon *PlgCreatePolygon( PLGTexture *texture, PLVector2 textureOffset, PLVector2 textureScale, float textureRotation ) {
-	PLGPolygon *polygon = pl_calloc( 1, sizeof( PLGPolygon ) );
+	PLGPolygon *polygon = PlCAllocA( 1, sizeof( PLGPolygon ) );
 	polygon->texture = texture;
 	polygon->textureOffset = textureOffset;
 	polygon->textureScale = textureScale;
@@ -33,7 +32,7 @@ void PlgDestroyPolygon( PLGPolygon *polygon ) {
 		return;
 	}
 
-	pl_free( polygon );
+	PlFree( polygon );
 }
 
 /**
@@ -46,7 +45,7 @@ void PlgGeneratePolygonNormals( PLGPolygon *polygon ) {
 	PlgGenerateVertexNormals( polygon->vertices, polygon->numVertices, indices, numTriangles, true );
 	PlgGenerateTangentBasis( polygon->vertices, polygon->numVertices, indices, numTriangles );
 
-	pl_free( indices );
+	PlFree( indices );
 }
 
 /**
@@ -56,7 +55,7 @@ void PlgGeneratePolygonFaceNormal( PLGPolygon *polygon ) {
 	unsigned int numTriangles;
 	unsigned int *indices = PlgConvertPolygonToTriangles( polygon, &numTriangles );
 
-	PLVector3 *normals = pl_malloc( sizeof( PLVector3 ) * polygon->numVertices );
+	PLVector3 *normals = PlMAllocA( sizeof( PLVector3 ) * polygon->numVertices );
 	for ( unsigned int i = 0, idx = 0; i < numTriangles; ++i, idx += 3 ) {
 		unsigned int a = indices[ idx ];
 		unsigned int b = indices[ idx + 1 ];
@@ -74,8 +73,8 @@ void PlgGeneratePolygonFaceNormal( PLGPolygon *polygon ) {
 
 	polygon->normal = normals[ 0 ];
 
-	pl_free( normals );
-	pl_free( indices );
+	PlFree( normals );
+	PlFree( indices );
 }
 
 void PlgAddPolygonVertex( PLGPolygon *polygon, const PLGVertex *vertex ) {
@@ -159,7 +158,7 @@ unsigned int *PlgConvertPolygonToTriangles( const PLGPolygon *polygon, unsigned 
 		return NULL;
 	}
 
-	unsigned int *indices = pl_malloc( sizeof( unsigned int ) * ( *numTriangles * 3 ) );
+	unsigned int *indices = PlMAllocA( sizeof( unsigned int ) * ( *numTriangles * 3 ) );
 	unsigned int *index = indices;
 	for ( unsigned int i = 1; i + 1 < polygon->numVertices; ++i ) {
 		index[ 0 ] = 0;
@@ -180,7 +179,7 @@ PLGMesh *PlgConvertPolygonToMesh( const PLGPolygon *polygon ) {
 
 	PLGMesh *mesh = PlgCreateMeshInit( PLG_MESH_TRIANGLES, PLG_DRAW_STATIC, numTriangles, polygon->numVertices, indices, polygon->vertices );
 
-	pl_free( indices );
+	PlFree( indices );
 
 	return mesh;
 }

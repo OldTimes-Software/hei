@@ -1,26 +1,8 @@
-/*
-MIT License
-
-Copyright (c) 2017-2021 Mark E Sowden <hogsy@oldtimes-software.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+/**
+ * Hei Platform Library
+ * Copyright (C) 2017-2021 Mark E Sowden <hogsy@oldtimes-software.com>
+ * This software is licensed under MIT. See LICENSE for more details.
+ */
 
 #include <vulkan/vulkan.h>
 
@@ -95,7 +77,7 @@ static VkPhysicalDevice VK_SelectPhysicalDevice( void ) {
 
 	GfxLog( "Found %d graphics devices, selecting appropriate device...\n", numDevices );
 
-	VkPhysicalDevice *physicalDevices = pl_malloc( sizeof( VkPhysicalDevice ) * numDevices );
+	VkPhysicalDevice *physicalDevices = PlMAllocA( sizeof( VkPhysicalDevice ) * numDevices );
 	vkEnumeratePhysicalDevices( vk_instance, &numDevices, physicalDevices );
 
 	VkPhysicalDeviceProperties properties;
@@ -121,7 +103,7 @@ static VkPhysicalDevice VK_SelectPhysicalDevice( void ) {
 	PRINT_VAR_INTEGER( properties.deviceID );
 	PRINT_VAR_INTEGER( properties.vendorID );
 
-	pl_free( physicalDevices );
+	PlFree( physicalDevices );
 
 	return vk_physicalDevice;
 }
@@ -165,7 +147,7 @@ void plInitVulkan( void ) {
 
 	/* query vulkan extensions */
 	vkEnumerateInstanceExtensionProperties( NULL, &vk_numExtensions, NULL );
-	vk_extensionProperties = pl_malloc( sizeof( VkExtensionProperties ) * vk_numExtensions );
+	vk_extensionProperties = PlMAllocA( sizeof( VkExtensionProperties ) * vk_numExtensions );
 	vkEnumerateInstanceExtensionProperties( NULL, &vk_numExtensions, vk_extensionProperties );
 	GfxLog( "  extensions:\n" );
 	for( unsigned int i = 0; i < vk_numExtensions; ++i ) {
@@ -174,7 +156,7 @@ void plInitVulkan( void ) {
 }
 
 void plShutdownVulkan( void ) {
-	pl_free( vk_extensionProperties );
+	PlFree( vk_extensionProperties );
 	vk_numExtensions = 0;
 
 	if ( vk_instance != NULL ) {

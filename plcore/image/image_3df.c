@@ -24,7 +24,7 @@ static PLImageFormat FD3_GetImageFormat( const char *formatStr ) {
 	return PL_IMAGEFORMAT_UNKNOWN;
 }
 
-static PLImage *FD3_ReadFile( PLFile *file ) {
+PLImage *PlParse3dfImage( PLFile *file ) {
 	/* read in the header */
 	char buf[ 64 ];
 
@@ -98,15 +98,15 @@ static PLImage *FD3_ReadFile( PLFile *file ) {
 
 	/* now we can load the actual data in */
 	size_t srcSize = PlGetImageSize( dataFormat, w, h );
-	uint8_t *srcBuf = pl_malloc( srcSize );
+	uint8_t *srcBuf = PlMAlloc( srcSize, true );
 	if ( PlReadFile( file, srcBuf, sizeof( char ), srcSize ) != srcSize ) {
-		pl_free( srcBuf );
+		PlFree( srcBuf );
 		return NULL;
 	}
 
 	/* convert it... */
 	size_t dstSize = PlGetImageSize( PL_IMAGEFORMAT_RGBA8, w, h );
-	uint8_t *dstBuf = pl_malloc( dstSize );
+	uint8_t *dstBuf = PlMAlloc( dstSize, true );
 	if ( dataFormat != PL_IMAGEFORMAT_RGBA8 ) {
 		switch ( dataFormat ) {
 			case PL_IMAGEFORMAT_RGB5A1: {
@@ -119,11 +119,11 @@ static PLImage *FD3_ReadFile( PLFile *file ) {
 					dstPos += 4;
 				}
 
-				pl_free( srcBuf );
+				PlFree( srcBuf );
 				break;
 			}
 			default:
-				pl_free( dstBuf );
+				PlFree( dstBuf );
 				dstBuf = srcBuf;
 				break;
 		}
@@ -132,20 +132,7 @@ static PLImage *FD3_ReadFile( PLFile *file ) {
 	PLImage *image = PlCreateImage( dstBuf, w, h, PL_COLOURFORMAT_RGBA, PL_IMAGEFORMAT_RGBA8 );
 
 	/* no longer need this */
-	pl_free( dstBuf );
-
-	return image;
-}
-
-PLImage *PlLoad3dfImage( const char *path ) {
-	PLFile *file = PlOpenFile( path, false );
-	if ( file == NULL ) {
-		return NULL;
-	}
-
-	PLImage *image = FD3_ReadFile( file );
-
-	PlCloseFile( file );
+	PlFree( dstBuf );
 
 	return image;
 }

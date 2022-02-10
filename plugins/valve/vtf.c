@@ -186,11 +186,8 @@ static void ConvertVTFFormat( PLImage *image, unsigned int in ) {
 			image->colour_format = PL_COLOURFORMAT_RGBA;
 			break;
 		case VTF_FORMAT_I8:
-			abort();// todo
 		case VTF_FORMAT_IA88:
-			abort();// todo
 		case VTF_FORMAT_P8:
-			abort();// todo
 		case VTF_FORMAT_RGB565:
 			abort();           // todo
 		case VTF_FORMAT_RGB888:// Same as RGB888_BLUESCREEN.
@@ -210,9 +207,7 @@ static void ConvertVTFFormat( PLImage *image, unsigned int in ) {
 			image->colour_format = PL_COLOURFORMAT_RGBA;
 			break;
 		case VTF_FORMAT_UV88:
-			abort();// todo
 		case VTF_FORMAT_UVLX8888:
-			abort();// todo
 		case VTF_FORMAT_UVWQ8888:
 			abort();// todo
 		default:
@@ -261,12 +256,7 @@ static bool VTF_ValidateFile( PLFile *file, VTFHeader *out ) {
 	return true;
 }
 
-PLImage *VTF_LoadImage( const char *path ) {
-	PLFile *file = gInterface->OpenFile( path, false );
-	if ( file == NULL ) {
-		return NULL;
-	}
-	
+PLImage *VTF_ParseImage( PLFile *file ) {
 	VTFHeader header;
 	if( !VTF_ValidateFile( file, &header ) ) {
 		gInterface->CloseFile( file );
@@ -278,14 +268,12 @@ PLImage *VTF_LoadImage( const char *path ) {
 	VTFHeader72 header2;
 	if ( header.version[ 1 ] >= 2 ) {
 		if ( gInterface->ReadFile( file, &header2, sizeof( VTFHeader72 ), 1 ) != 1 ) {
-			gInterface->CloseFile( file );
 			return NULL;
 		}
 	}
 	VTFHeader73 header3;
 	if ( header.version[ 1 ] >= 3 ) {
 		if ( gInterface->ReadFile( file, &header3, sizeof( VTFHeader73 ), 1 ) != 1 ) {
-			gInterface->CloseFile( file );
 			return NULL;
 		}
 	}

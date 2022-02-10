@@ -43,9 +43,13 @@ PLLinkedListNode *PlGetNextLinkedListNode( PLLinkedListNode *node );
 PLLinkedListNode *PlGetPrevLinkedListNode( PLLinkedListNode *node );
 PLLinkedListNode *PlGetFirstNode( PLLinkedList *list );
 void *PlGetLinkedListNodeUserData( PLLinkedListNode *node );
+void PlSetLinkedListNodeUserData( PLLinkedListNode *node, void *userPtr );
 
 unsigned int PlGetNumLinkedListNodes( PLLinkedList *list );
 
 PLLinkedList *PlGetLinkedListNodeContainer( PLLinkedListNode *node );
+
+typedef void ( *PLLinkedListIteratorCallback )( void *userData, bool *breakEarly );
+void PlIterateLinkedList( PLLinkedList *linkedList, PLLinkedListIteratorCallback callbackHandler );
 
 PL_EXTERN_C_END

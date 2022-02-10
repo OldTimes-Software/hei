@@ -6,8 +6,6 @@
 
 #pragma once
 
-PL_EXTERN_C
-
 /******************************************************************/
 /* Quaternions */
 
@@ -145,5 +143,3 @@ inline static PLQuaternion PlRotateQuaternionPoint( const PLQuaternion *q, const
 	PLQuaternion a = PlMultiplyQuaternion3FV( q, point );
 	return PlMultiplyQuaternion( &a, &b );
 }
-
-PL_EXTERN_C_END

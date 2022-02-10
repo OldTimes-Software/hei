@@ -37,9 +37,9 @@ enum {
 	PL_WINDOW_FLAG_SOFTWARE	= ( 1 << 2 ),
 };
 
-PLWindow *plCreateWindow( int w, int h, const char *title );
-void plDestroyWindow( PLWindow *windowPtr );
+PLWindow *PlCreateWindow( int w, int h, const char *title );
+void PlDestroyWindow( PLWindow *windowPtr );
 
-void plGetWindowPosition( PLWindow *windowPtr, int *x, int *y );
+void PlGetWindowPosition( PLWindow *windowPtr, int *x, int *y );
 
-void plSwapWindow( PLWindow *windowPtr );
+void PlSwapWindow( PLWindow *windowPtr );

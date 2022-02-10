@@ -10,7 +10,11 @@
 
 #include <plcore/pl_image.h>
 
-PLImage *PlLoad3dfImage( const char *path );
-PLImage *PlLoadFtxImage( const char *path );
-PLImage *PlLoadTimImage( const char *path );
-PLImage *PlLoadSwlImage( const char *path );
+PLImage *PlParse3dfImage( PLFile *file );
+PLImage *PlParseFtxImage( PLFile *file );
+PLImage *PlParseTimImage( PLFile *file );
+PLImage *PlParseSwlImage( PLFile *file );
+PLImage *PlParseQoiImage( PLFile *file );
+PLImage *PlParseDdsImage( PLFile *file );
+
+bool PlWriteQoiImage( const PLImage *image, const char *path );

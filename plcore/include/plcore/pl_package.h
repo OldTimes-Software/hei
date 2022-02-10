@@ -8,13 +8,7 @@
 
 #include <plcore/pl.h>
 #include <plcore/pl_filesystem.h>
-
-typedef enum PLCompressionType {
-	PL_COMPRESSION_NONE,
-	PL_COMPRESSION_ZLIB,
-
-	PL_MAX_COMPRESSION_FORMATS
-} PLCompressionType;
+#include <plcore/pl_compression.h>
 
 typedef struct PLPackageIndex {
 	size_t offset;
@@ -47,6 +41,7 @@ PL_EXTERN void PlDestroyPackage( PLPackage *package );
 PL_EXTERN void PlRegisterPackageLoader( const char *ext, PLPackage *( *LoadFunction )( const char *path ) );
 PL_EXTERN void PlRegisterStandardPackageLoaders( void );
 PL_EXTERN void PlClearPackageLoaders( void );
+PL_EXTERN const char **PlGetSupportedPackageFormats( unsigned int *numElements );
 
 PL_EXTERN const char *PlGetPackagePath( const PLPackage *package );
 PL_EXTERN unsigned int PlGetPackageTableSize( const PLPackage *package );

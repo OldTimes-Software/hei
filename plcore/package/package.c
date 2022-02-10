@@ -8,7 +8,37 @@
 #include "package_private.h"
 #include "filesystem_private.h"
 
-#include "miniz/miniz.h"
+#include "../3rdparty/miniz/miniz.h"
+#include "../3rdparty/blast/blast.h"
+
+/****************************************
+ * Generic Loader
+ ****************************************/
+
+typedef struct BlstUser {
+	uint8_t *buffer;
+	unsigned int maxLength, length;
+} BlstUser;
+
+static unsigned int BlstCbIn( void *how, unsigned char **buf ) {
+	BlstUser *user = ( BlstUser * ) how;
+	if ( user->buffer == NULL ) {
+		return 0;
+	}
+
+	*buf = user->buffer;
+	return user->length;
+}
+
+static int BlstCbOut( void *how, unsigned char *buf, unsigned int len ) {
+	BlstUser *user = ( BlstUser * ) how;
+	if ( user->length >= user->maxLength ) {
+		return 1;
+	}
+	memcpy( user->buffer + user->length, buf, len );
+	user->length += len;
+	return 0;
+}
 
 /**
  * Generic loader for package files, since this is unlikely to change
@@ -17,36 +47,87 @@
 static uint8_t *LoadGenericPackageFile( PLFile *fh, PLPackageIndex *pi ) {
 	FunctionStart();
 
-	size_t size = ( pi->compressionType != PL_COMPRESSION_NONE ) ? pi->compressedSize : pi->fileSize;
-	uint8_t *dataPtr = pl_malloc( size );
-	if ( !PlFileSeek( fh, ( signed ) pi->offset, PL_SEEK_SET ) || PlReadFile( fh, dataPtr, size, 1 ) != 1 ) {
-		pl_free( dataPtr );
+	if ( !PlFileSeek( fh, ( signed ) pi->offset, PL_SEEK_SET ) ) {
 		return NULL;
 	}
 
-	if ( pi->compressionType == PL_COMPRESSION_ZLIB ) {
-		uint8_t *decompressedPtr = pl_malloc( pi->fileSize );
-		unsigned long uncompressedLength;
-		int status = mz_uncompress( decompressedPtr, &uncompressedLength, dataPtr, pi->compressedSize );
+	size_t size = ( pi->compressionType != PL_COMPRESSION_NONE ) ? pi->compressedSize : pi->fileSize;
+	uint8_t *dataPtr = PlMAllocA( size );
+	if ( PlReadFile( fh, dataPtr, sizeof( uint8_t ), size ) != size ) {
+		PlFree( dataPtr );
+		return NULL;
+	}
 
-		pl_free( dataPtr );
-		dataPtr = decompressedPtr;
+	if ( pi->compressionType != PL_COMPRESSION_NONE ) {
+		uint8_t *decompressedPtr = PlMAllocA( pi->fileSize );
+		unsigned long uncompressedLength = ( unsigned long ) pi->fileSize;
+		if ( pi->compressionType == PL_COMPRESSION_ZLIB ) {
+			int status = uncompress( decompressedPtr, &uncompressedLength, dataPtr, ( unsigned long ) pi->compressedSize );
 
-		if ( status != MZ_OK ) {
-			pl_free( dataPtr );
-			PlReportErrorF( PL_RESULT_FILEREAD, "failed to decompress buffer" );
-			return NULL;
+			PlFree( dataPtr );
+			dataPtr = decompressedPtr;
+
+			if ( status != Z_OK ) {
+				PlFree( dataPtr );
+				PlReportErrorF( PL_RESULT_FILEREAD, "failed to decompress buffer (%s)", zError( status ) );
+				return NULL;
+			}
+		} else if ( pi->compressionType == PL_COMPRESSION_IMPLODE ) {
+			BlstUser in = {
+			                 .buffer = dataPtr,
+			                 .length = ( unsigned int ) size,
+			         },
+			         out = {
+			                 .buffer = decompressedPtr,
+			                 .length = 0,
+			                 .maxLength = uncompressedLength,
+			         };
+			int status = blast( BlstCbIn, &in, BlstCbOut, &out, NULL, NULL );
+
+			PlFree( dataPtr );
+			dataPtr = decompressedPtr;
+
+			if ( status != 0 ) {
+				const char *errmsg;
+				switch ( status ) {
+					case 2:
+						errmsg = "ran out of input before completing decompression";
+						break;
+					case 1:
+						errmsg = "output error before completing decompression";
+						break;
+					case -1:
+						errmsg = "literal flag not zero or one";
+						break;
+					case -2:
+						errmsg = "dictionary size not in 4..6";
+						break;
+					case -3:
+						errmsg = "distance is too far back";
+						break;
+					default:
+						errmsg = "unknown error when decompressing buffer";
+						break;
+				}
+
+				PlFree( dataPtr );
+				PlReportErrorF( PL_RESULT_FILEREAD, "%s (%d)", errmsg, status );
+				return NULL;
+			}
 		}
 	}
 
 	return dataPtr;
 }
 
+/****************************************
+ ****************************************/
+
 /**
  * Allocate a new package handle.
  */
 PLPackage *PlCreatePackageHandle( const char *path, unsigned int tableSize, uint8_t *( *OpenFile )( PLFile *filePtr, PLPackageIndex *index ) ) {
-	PLPackage *package = pl_malloc( sizeof( PLPackage ) );
+	PLPackage *package = PlMAllocA( sizeof( PLPackage ) );
 
 	if ( OpenFile == NULL ) {
 		package->internal.LoadFile = LoadGenericPackageFile;
@@ -55,7 +136,7 @@ PLPackage *PlCreatePackageHandle( const char *path, unsigned int tableSize, uint
 	}
 
 	package->table_size = tableSize;
-	package->table = pl_calloc( tableSize, sizeof( PLPackageIndex ) );
+	package->table = PlCAllocA( tableSize, sizeof( PLPackageIndex ) );
 
 	snprintf( package->path, sizeof( package->path ), "%s", path );
 
@@ -69,8 +150,8 @@ void PlDestroyPackage( PLPackage *package ) {
 		return;
 	}
 
-	pl_free( package->table );
-	pl_free( package );
+	PlFree( package->table );
+	PlFree( package );
 }
 #if 0// todo
 void plWritePackage(PLPackage *package) {
@@ -91,11 +172,20 @@ void PlInitPackageSubSystem( void ) {
 	PlClearPackageLoaders();
 }
 
-#if 0 /* todo */
-void plQuerySupportedPackages(char **array, unsigned int *size) {
-	static char
+/**
+ * Returns a list of file extensions representing all
+ * the formats supported by the package loader.
+ */
+const char **PlGetSupportedPackageFormats( unsigned int *numElements ) {
+	static const char *formats[ MAX_OBJECT_INTERFACES ];
+	for ( unsigned int i = 0; i < num_package_loaders; ++i ) {
+		formats[ i ] = package_loaders[ i ].ext;
+	}
+
+	*numElements = num_package_loaders;
+
+	return formats;
 }
-#endif
 
 void PlClearPackageLoaders( void ) {
 	memset( package_loaders, 0, sizeof( PLPackageLoader ) * MAX_OBJECT_INTERFACES );
@@ -109,33 +199,15 @@ void PlRegisterPackageLoader( const char *ext, PLPackage *( *LoadFunction )( con
 }
 
 void PlRegisterStandardPackageLoaders( void ) {
-	/* outwars */
-	PlRegisterPackageLoader( "ff", PlLoadFfPackage );
 	/* hogs of war */
 	PlRegisterPackageLoader( "mad", PlLoadMadPackage );
 	PlRegisterPackageLoader( "mtd", PlLoadMadPackage );
-	/* iron storm */
-	PlRegisterPackageLoader( "lst", PlLoadLstPackage );
 	/* starfox adventures */
 	PlRegisterPackageLoader( "tab", PlLoadTabPackage );
-	/* sentient */
-	PlRegisterPackageLoader( "vsr", PlLoadVsrPackage );
-	/* doom */
-	PlRegisterPackageLoader( "wad", PlLoadWadPackage );
-	/* eradicator */
-	PlRegisterPackageLoader( "rid", PlLoadRidbPackage );
-	PlRegisterPackageLoader( "rim", PlLoadRidbPackage );
-	/* mortyr */
-	PlRegisterPackageLoader( "hal", PlLoadApukPackage );
 }
 
 PLPackage *PlLoadPackage( const char *path ) {
 	FunctionStart();
-
-	if ( !PlFileExists( path ) ) {
-		PlReportErrorF( PL_RESULT_FILEREAD, "failed to load package, \"%s\"", path );
-		return NULL;
-	}
 
 	const char *ext = PlGetFileExtension( path );
 	for ( unsigned int i = 0; i < num_package_loaders; ++i ) {
@@ -184,7 +256,7 @@ PLFile *PlLoadPackageFile( PLPackage *package, const char *path ) {
 
 		uint8_t *dataPtr = package->internal.LoadFile( packageFile, &( package->table[ i ] ) );
 		if ( dataPtr != NULL ) {
-			file = pl_malloc( sizeof( PLFile ) );
+			file = PlMAllocA( sizeof( PLFile ) );
 			snprintf( file->path, sizeof( file->path ), "%s", package->table[ i ].fileName );
 			file->size = package->table[ i ].fileSize;
 			file->data = dataPtr;
