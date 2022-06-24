@@ -20,7 +20,7 @@ PL_EXTERN_C
  * either audio/video.
  */
 
-#define PLG_INTERFACE_VERSION_MAJOR 1
+#define PLG_INTERFACE_VERSION_MAJOR 2
 #define PLG_INTERFACE_VERSION_MINOR 1
 #define PLG_INTERFACE_VERSION \
 	( uint16_t[ 2 ] ) { PLG_INTERFACE_VERSION_MAJOR, PLG_INTERFACE_VERSION_MINOR }
@@ -53,7 +53,7 @@ typedef struct PLGDriverExportTable {
 } PLGDriverExportTable;
 
 typedef struct PLGDriverImportTable {
-	void ( *Initialize )( void );
+	PLFunctionResult ( *Initialize )( void );
 	void ( *Shutdown )( void );
 
 	// Debug
@@ -112,6 +112,7 @@ typedef struct PLGDriverImportTable {
 	void ( *UploadTexture )( PLGTexture *texture, const PLImage *upload );
 	void ( *SwizzleTexture )( PLGTexture *texture, uint8_t r, uint8_t g, uint8_t b, uint8_t a );
 	void ( *SetTextureAnisotropy )( PLGTexture *texture, uint32_t value );
+	void ( *SetTextureFilter )( PLGTexture *texture, PLGTextureFilter filter );
 	void ( *ActiveTexture )( unsigned int target );
 
 	// Camera

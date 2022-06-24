@@ -51,6 +51,8 @@ inline static PLMatrix4 PlInverseMatrix4( PLMatrix4 m );
 PLVector3 PlGetMatrix4Translation( const PLMatrix4 *m );
 PLVector3 PlGetMatrix4Angle( const PLMatrix4 *m );
 
+PLVector2 PlConvertWorldToScreen( const PLVector3 *position, const PLMatrix4 *viewProjMatrix );
+
 #ifdef __cplusplus
 namespace hei {
 	struct Matrix4 : PLMatrix4 {
@@ -137,7 +139,7 @@ namespace hei {
 			return *this = *this * v;
 		}
 	};
-}
+}// namespace hei
 #endif
 
 /* ClearMatrix */
@@ -445,23 +447,29 @@ inline static PLMatrix4 PlInverseMatrix4( PLMatrix4 m ) {
 
 inline static PLMatrix4 PlLookAt( PLVector3 eye, PLVector3 center, PLVector3 up ) {
 	PLVector3 f = PlNormalizeVector3( PlSubtractVector3( center, eye ) );
-	PLVector3 u = PlNormalizeVector3( up );
-	PLVector3 s = PlNormalizeVector3( PlVector3CrossProduct( f, u ) );
-	u = PlVector3CrossProduct( s, f );
+	PLVector3 s = PlNormalizeVector3( PlVector3CrossProduct( f, up ) );
+	PLVector3 u = PlVector3CrossProduct( s, f );
 
 	PLMatrix4 out = PlMatrix4Identity();
+
+	/* side */
 	out.pl_m4pos( 0, 0 ) = s.x;
 	out.pl_m4pos( 1, 0 ) = s.y;
 	out.pl_m4pos( 2, 0 ) = s.z;
+	/* up */
 	out.pl_m4pos( 0, 1 ) = u.x;
 	out.pl_m4pos( 1, 1 ) = u.y;
 	out.pl_m4pos( 2, 1 ) = u.z;
+	/* forward */
 	out.pl_m4pos( 0, 2 ) = -f.x;
 	out.pl_m4pos( 1, 2 ) = -f.y;
 	out.pl_m4pos( 2, 2 ) = -f.z;
+
+	/* translation */
 	out.pl_m4pos( 3, 0 ) = -( PlVector3DotProduct( s, eye ) );
 	out.pl_m4pos( 3, 1 ) = -( PlVector3DotProduct( u, eye ) );
 	out.pl_m4pos( 3, 2 ) = PlVector3DotProduct( f, eye );
+
 	return out;
 }
 
@@ -527,15 +535,17 @@ inline static PLMatrix4 PlOrtho( float left, float right, float bottom, float to
 }
 
 inline static PLMatrix4 PlPerspective( float fov, float aspect, float nearf, float farf ) {
-	float y_max = nearf * tanf( fov * PL_PI / 360 );
+	float y_max = nearf * tanf( fov * PL_PI / 360.0f );
 	float x_max = y_max * aspect;
 	return PlFrustum( -x_max, x_max, -y_max, y_max, nearf, farf );
 }
 
-/* Matrix Stack, sorta mirrors OpenGL behaviour */
+/* Matrix Stack, sorta mirrors OpenGL behaviour
+ * TODO: move this into plgraphics */
 
 typedef enum PLMatrixMode {
 	PL_MODELVIEW_MATRIX,
+	PL_VIEW_MATRIX,
 	PL_PROJECTION_MATRIX,
 	PL_TEXTURE_MATRIX,
 
@@ -553,6 +563,7 @@ void PlMultiMatrix( const PLMatrix4 *matrix );
 void PlRotateMatrix( float angle, float x, float y, float z );
 void PlTranslateMatrix( PLVector3 vector );
 void PlScaleMatrix( PLVector3 scale );
+void PlInverseMatrix( void );
 
 void PlPushMatrix( void );
 void PlPopMatrix( void );

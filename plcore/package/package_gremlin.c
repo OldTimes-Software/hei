@@ -23,12 +23,12 @@
  * Thanks to solemnwarning for his help on this one!
  */
 
-PL_PACKED_STRUCT_START( MADIndex )
-char file[ 16 ];
+typedef struct MADIndex {
+	char file[ 16 ];
 
-uint32_t offset;
-uint32_t length;
-PL_PACKED_STRUCT_END( MADIndex )
+	uint32_t offset;
+	uint32_t length;
+} MADIndex;
 
 PLPackage *PlLoadMadPackage( const char *path ) {
 	FunctionStart();

@@ -17,7 +17,7 @@ typedef struct PLGDriverImportTable PLGDriverImportTable;
 
 typedef enum PLGCullMode {
 	PLG_CULL_NONE, /* disables backface culling */
-	PLG_CULL_POSTIVE,
+	PLG_CULL_POSITIVE,
 	PLG_CULL_NEGATIVE
 } PLGCullMode;
 

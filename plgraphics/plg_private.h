@@ -88,6 +88,9 @@ typedef struct GfxState {
 
 	PLGViewport *current_viewport;
 
+	PLGFrameBuffer *frameBufferTarget;
+	PLGFrameBufferObjectTarget frameBufferTargetMode;
+
 	bool mode_debug;
 } GfxState;
 

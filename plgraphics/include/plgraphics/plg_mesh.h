@@ -7,6 +7,7 @@
 #pragma once
 
 #include <plcore/pl_math.h>
+#include <plcore/pl_physics.h>
 
 PL_EXTERN_C
 
@@ -39,16 +40,7 @@ typedef struct PLGVertex {
 	PLVector3 tangent, bitangent;
 	PLVector2 st[ 16 ];
 	PLColour colour;
-	/* specific to skeletal animation */
-	unsigned int bone_index;
-	float bone_weight;
 } PLGVertex;
-
-static inline PLGVertex PlgInitializeVertex( void ) {
-	PLGVertex m;
-	memset( &m, 0, sizeof( PLGVertex ) );
-	return m;
-}
 
 typedef struct PLGTexture PLGTexture;
 
@@ -81,57 +73,68 @@ typedef struct PLCollisionAABB PLCollisionAABB;
 
 #if !defined( PL_COMPILE_PLUGIN )
 
-PL_EXTERN PLGMesh *PlgCreateMesh( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, unsigned int num_tris, unsigned int num_verts );
-PL_EXTERN PLGMesh *PlgCreateMeshInit( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, unsigned int numTriangles, unsigned int numVerts,
+PLGMesh *PlgCreateMesh( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, unsigned int num_tris, unsigned int num_verts );
+PLGMesh *PlgCreateMeshInit( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, unsigned int numTriangles, unsigned int numVerts,
                                       const unsigned int *indicies, const PLGVertex *vertices );
-PL_EXTERN PLGMesh *PlgCreateMeshRectangle( float x, float y, float w, float h, PLColour colour );
-PL_EXTERN void PlgDestroyMesh( PLGMesh *mesh );
+PLGMesh *PlgCreateMeshRectangle( float x, float y, float w, float h, PLColour colour );
+void PlgDestroyMesh( PLGMesh *mesh );
 
-PL_EXTERN void PlgDrawEllipse( unsigned int segments, PLVector2 position, float w, float h, PLColour colour );
-PL_EXTERN void PlgDrawRectangle( const PLMatrix4 *transform, float x, float y, float w, float h, PLColour colour );
-PL_EXTERN void PlgDrawTexturedRectangle( const PLMatrix4 *transform, float x, float y, float w, float h, PLGTexture *texture );
-PL_EXTERN void PlgDrawFilledRectangle( const PLRectangle2D *rectangle );
-PL_EXTERN void PlgDrawTexturedQuad( const PLVector3 *ul, const PLVector3 *ur, const PLVector3 *ll, const PLVector3 *lr,
+void PlgDrawEllipse( unsigned int segments, PLVector2 position, float w, float h, PLColour colour );
+void PlgDrawRectangle( float x, float y, float w, float h, PLColour colour );
+void PlgDrawTexturedRectangle( float x, float y, float w, float h, PLGTexture *texture );
+void PlgDrawFilledRectangle( const PLRectangle2D *rectangle );
+void PlgDrawTexturedQuad( const PLVector3 *ul, const PLVector3 *ur, const PLVector3 *ll, const PLVector3 *lr,
                                     float hScale, float vScale, PLGTexture *texture );
-PL_EXTERN void PlgDrawTriangle( int x, int y, unsigned int w, unsigned int h );
-PL_EXTERN void PlgDrawLines( const PLVector3 *points, unsigned int numPoints, PLColour colour );
-PL_EXTERN void PlgDrawLine( PLMatrix4 transform, PLVector3 startPos, PLColour startColour, PLVector3 endPos, PLColour endColour );
-PL_EXTERN void PlgDrawSimpleLine( PLMatrix4 transform, PLVector3 startPos, PLVector3 endPos, PLColour colour );
-PL_EXTERN void PlgDrawGrid( int x, int y, int w, int h, unsigned int gridSize );
-PL_EXTERN void PlgDrawMeshNormals( const PLGMesh *mesh );
-PL_EXTERN void PlgDrawBoundingVolume( const PLCollisionAABB *bounds, PLColour colour );
+void PlgDrawTriangle( int x, int y, unsigned int w, unsigned int h );
+void PlgDrawLines( const PLVector3 *points, unsigned int numPoints, PLColour colour );
+void PlgDrawLine( PLMatrix4 transform, PLVector3 startPos, PLColour startColour, PLVector3 endPos, PLColour endColour );
+void PlgDrawSimpleLine( PLMatrix4 transform, PLVector3 startPos, PLVector3 endPos, PLColour colour );
+void PlgDrawGrid( int x, int y, int w, int h, unsigned int gridSize );
+void PlgDrawVertexNormals( const PLGVertex *vertices, unsigned int numVertices );
+void PlgDrawMeshNormals( const PLGMesh *mesh );
+void PlgDrawBoundingVolume( const PLCollisionAABB *bounds, PLColour colour );
 
-PL_EXTERN void PlgClearMesh( PLGMesh *mesh );
-PL_EXTERN void PlgClearMeshVertices( PLGMesh *mesh );
-PL_EXTERN void PlgClearMeshTriangles( PLGMesh *mesh );
+void PlgClearMesh( PLGMesh *mesh );
+void PlgClearMeshVertices( PLGMesh *mesh );
+void PlgClearMeshTriangles( PLGMesh *mesh );
 
-PL_EXTERN void PlgScaleMesh( PLGMesh *mesh, PLVector3 scale );
-PL_EXTERN void PlgSetMeshTrianglePosition( PLGMesh *mesh, unsigned int *index, unsigned int x, unsigned int y, unsigned int z );
-PL_EXTERN void PlgSetMeshVertexPosition( PLGMesh *mesh, unsigned int index, PLVector3 vector );
-PL_EXTERN void PlgSetMeshVertexNormal( PLGMesh *mesh, unsigned int index, PLVector3 vector );
-PL_EXTERN void PlgSetMeshVertexST( PLGMesh *mesh, unsigned int index, float s, float t );
-PL_EXTERN void PlgSetMeshVertexSTv( PLGMesh *mesh, uint8_t unit, unsigned int index, unsigned int size, const float *st );
-PL_EXTERN void PlgSetMeshVertexColour( PLGMesh *mesh, unsigned int index, PLColour colour );
-PL_EXTERN void PlgSetMeshUniformColour( PLGMesh *mesh, PLColour colour );
-PL_EXTERN void PlgSetMeshShaderProgram( PLGMesh *mesh, struct PLGShaderProgram *program );
+void PlgScaleMesh( PLGMesh *mesh, PLVector3 scale );
+void PlgSetMeshTrianglePosition( PLGMesh *mesh, unsigned int *index, unsigned int x, unsigned int y, unsigned int z );
+void PlgSetMeshVertexPosition( PLGMesh *mesh, unsigned int index, PLVector3 vector );
+void PlgSetMeshVertexNormal( PLGMesh *mesh, unsigned int index, PLVector3 vector );
+void PlgSetMeshVertexST( PLGMesh *mesh, unsigned int index, float s, float t );
+void PlgSetMeshVertexSTv( PLGMesh *mesh, uint8_t unit, unsigned int index, unsigned int size, const float *st );
+void PlgSetMeshVertexColour( PLGMesh *mesh, unsigned int index, PLColour colour );
+void PlgSetMeshUniformColour( PLGMesh *mesh, PLColour colour );
+void PlgSetMeshShaderProgram( PLGMesh *mesh, struct PLGShaderProgram *program );
 
-PL_EXTERN unsigned int PlgAddMeshVertex( PLGMesh *mesh, PLVector3 position, PLVector3 normal, PLColour colour, PLVector2 st );
-PL_EXTERN unsigned int PlgAddMeshTriangle( PLGMesh *mesh, unsigned int x, unsigned int y, unsigned int z );
+unsigned int PlgAddMeshVertex( PLGMesh *mesh, PLVector3 position, PLVector3 normal, PLColour colour, PLVector2 st );
+unsigned int PlgAddMeshTriangle( PLGMesh *mesh, unsigned int x, unsigned int y, unsigned int z );
 
-PL_EXTERN void PlgUploadMesh( PLGMesh *mesh );
-PL_EXTERN void PlgDrawMesh( PLGMesh *mesh );
+void PlgUploadMesh( PLGMesh *mesh );
+void PlgDrawMesh( PLGMesh *mesh );
 
 PLCollisionAABB PlgGenerateAabbFromVertices( const PLGVertex *vertices, unsigned int numVertices, bool absolute );
 PLCollisionAABB PlgGenerateAabbFromMesh( const PLGMesh *mesh, bool absolute );
 
-PL_EXTERN void PlgGenerateMeshNormals( PLGMesh *mesh, bool perFace );
-PL_EXTERN void PlgGenerateMeshTangentBasis( PLGMesh *mesh );
+void PlgGenerateMeshNormals( PLGMesh *mesh, bool perFace );
+void PlgGenerateMeshTangentBasis( PLGMesh *mesh );
 
-PL_EXTERN void PlgGenerateTangentBasis( PLGVertex *vertices, unsigned int numVertices, const unsigned int *indices, unsigned int numTriangles );
-PL_EXTERN void PlgGenerateTextureCoordinates( PLGVertex *vertices, unsigned int numVertices, PLVector2 textureOffset, PLVector2 textureScale );
-PL_EXTERN void PlgGenerateVertexNormals( PLGVertex *vertices, unsigned int numVertices, unsigned int *indices, unsigned int numTriangles, bool perFace );
+void PlgGenerateVertexTangentBasis( PLGVertex *vertices, unsigned int numVertices );
+void PlgGenerateTangentBasis( PLGVertex *vertices, unsigned int numVertices, const unsigned int *indices, unsigned int numTriangles );
+void PlgGenerateTextureCoordinates( PLGVertex *vertices, unsigned int numVertices, PLVector2 textureOffset, PLVector2 textureScale );
+void PlgGenerateVertexNormals( PLGVertex *vertices, unsigned int numVertices, unsigned int *indices, unsigned int numTriangles, bool perFace );
 
-PL_EXTERN PLVector3 PlgGenerateVertexNormal( PLVector3 a, PLVector3 b, PLVector3 c );
+PLVector3 PlgGenerateVertexNormal( PLVector3 a, PLVector3 b, PLVector3 c );
+
+/* immediate mode style api */
+void PlgImmBegin( PLGMeshPrimitive primitive );
+unsigned int PlgImmPushVertex( float x, float y, float z );
+void PlgImmNormal( float x, float y, float z );
+void PlgImmColour( uint8_t r, uint8_t g, uint8_t b, uint8_t a );
+void PlgImmTextureCoord( float s, float t );
+unsigned int PlgImmPushTriangle( unsigned int x, unsigned int y, unsigned int z );
+void PlgImmDraw( void );
 
 #endif
 

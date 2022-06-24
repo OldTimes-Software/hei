@@ -50,43 +50,55 @@ struct {
 static int gl_version_major = 0;
 static int gl_version_minor = 0;
 
-#define GLVersion( maj, min ) ( ( ( maj ) == gl_version_major && ( min ) <= gl_version_minor ) || ( maj ) < gl_version_major )
-#define GLLog( ... )          gInterface->core->LogMessage( glLogLevel, __VA_ARGS__ )
+#define XGL_VERSION( maj, min ) ( ( ( maj ) == gl_version_major && ( min ) <= gl_version_minor ) || ( maj ) < gl_version_major )
+#define XGL_LOG( ... )          gInterface->core->LogMessage( glLogLevel, __VA_ARGS__ )
 
 unsigned int gl_num_extensions = 0;
 
 static GLuint VAO[ 1 ];
 
+#if !defined( NDEBUG )
+#	define XGL_CALL( X )                     \
+		{                                     \
+			glGetError();                     \
+			X;                                \
+			unsigned int _err = glGetError(); \
+			assert( _err == GL_NO_ERROR );    \
+		}
+#else
+#	define XGL_CALL( X ) X
+#endif
+
 ///////////////////////////////////////////
 // Debug
 
 static void GLInsertDebugMarker( const char *msg ) {
-	if ( !GLVersion( 4, 3 ) ) {
+	if ( !XGL_VERSION( 4, 3 ) ) {
 		return;
 	}
 
-	glDebugMessageInsert( GL_DEBUG_SOURCE_APPLICATION,
-	                      GL_DEBUG_TYPE_MARKER,
-	                      0,
-	                      GL_DEBUG_SEVERITY_NOTIFICATION,
-	                      -1,
-	                      msg );
+	XGL_CALL( glDebugMessageInsert( GL_DEBUG_SOURCE_APPLICATION,
+	                                GL_DEBUG_TYPE_MARKER,
+	                                0,
+	                                GL_DEBUG_SEVERITY_NOTIFICATION,
+	                                -1,
+	                                msg ) );
 }
 
 static void GLPushDebugGroupMarker( const char *msg ) {
-	if ( !GLVersion( 4, 3 ) ) {
+	if ( !XGL_VERSION( 4, 3 ) ) {
 		return;
 	}
 
-	glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, msg );
+	XGL_CALL( glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, msg ) );
 }
 
 static void GLPopDebugGroupMarker( void ) {
-	if ( !GLVersion( 4, 3 ) ) {
+	if ( !XGL_VERSION( 4, 3 ) ) {
 		return;
 	}
 
-	glPopDebugGroup();
+	XGL_CALL( glPopDebugGroup() );
 }
 
 #if 0
@@ -135,25 +147,25 @@ static void GL_TranslateTextureFilterFormat( PLGTextureFilter filterMode, int *m
 /////////////////////////////////////////////////////////////
 
 static bool GLSupportsHWShaders( void ) {
-	return ( GLVersion( 2, 1 ) || ( gl_capabilities.fragment_program && gl_capabilities.vertex_program ) );
+	return ( XGL_VERSION( 2, 1 ) || ( gl_capabilities.fragment_program && gl_capabilities.vertex_program ) );
 }
 
 static void GLGetMaxTextureUnits( unsigned int *num_units ) {
-	glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, ( GLint * ) num_units );
+	XGL_CALL( glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, ( GLint * ) num_units ) );
 }
 
 static void GLGetMaxTextureSize( unsigned int *s ) {
-	glGetIntegerv( GL_MAX_TEXTURE_SIZE, ( GLint * ) s );
+	XGL_CALL( glGetIntegerv( GL_MAX_TEXTURE_SIZE, ( GLint * ) s ) );
 }
 
 /////////////////////////////////////////////////////////////
 
 static void GLSetClearColour( PLColour rgba ) {
-	glClearColor(
+	XGL_CALL( glClearColor(
 	        PlByteToFloat( rgba.r ),
 	        PlByteToFloat( rgba.g ),
 	        PlByteToFloat( rgba.b ),
-	        PlByteToFloat( rgba.a ) );
+	        PlByteToFloat( rgba.a ) ) );
 }
 
 static void GLClearBuffers( unsigned int buffers ) {
@@ -162,27 +174,27 @@ static void GLClearBuffers( unsigned int buffers ) {
 	if ( buffers & PLG_BUFFER_COLOUR ) glclear |= GL_COLOR_BUFFER_BIT;
 	if ( buffers & PLG_BUFFER_DEPTH ) glclear |= GL_DEPTH_BUFFER_BIT;
 	if ( buffers & PLG_BUFFER_STENCIL ) glclear |= GL_STENCIL_BUFFER_BIT;
-	glClear( glclear );
+	XGL_CALL( glClear( glclear ) );
 }
 
 static void GLSetDepthBufferMode( unsigned int mode ) {
 	switch ( mode ) {
 		default:
-			GLLog( "Unknown depth buffer mode, %d\n", mode );
+			XGL_LOG( "Unknown depth buffer mode, %d\n", mode );
 			break;
 
 		case PLG_DEPTHBUFFER_DISABLE:
-			glDisable( GL_DEPTH_TEST );
+			XGL_CALL( glDisable( GL_DEPTH_TEST ) );
 			break;
 
 		case PLG_DEPTHBUFFER_ENABLE:
-			glEnable( GL_DEPTH_TEST );
+			XGL_CALL( glEnable( GL_DEPTH_TEST ) );
 			break;
 	}
 }
 
 static void GLSetDepthMask( bool enable ) {
-	glDepthMask( enable );
+	XGL_CALL( glDepthMask( enable ) );
 }
 
 /////////////////////////////////////////////////////////////
@@ -217,28 +229,28 @@ static unsigned int TranslateBlendFunc( PLGBlend blend ) {
 
 static void GLSetBlendMode( PLGBlend a, PLGBlend b ) {
 	if ( a == PLG_BLEND_NONE && b == PLG_BLEND_NONE ) {
-		glDisable( GL_BLEND );
+		XGL_CALL( glDisable( GL_BLEND ) );
 	} else {
-		glEnable( GL_BLEND );
+		XGL_CALL( glEnable( GL_BLEND ) );
 	}
 
-	glBlendFunc( TranslateBlendFunc( a ), TranslateBlendFunc( b ) );
+	XGL_CALL( glBlendFunc( TranslateBlendFunc( a ), TranslateBlendFunc( b ) ) );
 }
 
 static void GLSetCullMode( PLGCullMode mode ) {
 	if ( mode == PLG_CULL_NONE ) {
-		glDisable( GL_CULL_FACE );
+		XGL_CALL( glDisable( GL_CULL_FACE ) );
 	} else {
-		glEnable( GL_CULL_FACE );
-		glCullFace( GL_BACK );
+		XGL_CALL( glEnable( GL_CULL_FACE ) );
+		XGL_CALL( glCullFace( GL_BACK ) );
 		switch ( mode ) {
 			default:
 			case PLG_CULL_NEGATIVE:
-				glFrontFace( GL_CW );
+				XGL_CALL( glFrontFace( GL_CW ) );
 				break;
 
-			case PLG_CULL_POSTIVE:
-				glFrontFace( GL_CCW );
+			case PLG_CULL_POSITIVE:
+				XGL_CALL( glFrontFace( GL_CCW ) );
 				break;
 		}
 	}
@@ -262,53 +274,56 @@ static unsigned int TranslateFrameBufferBinding( PLGFrameBufferObjectTarget targ
 }
 
 static void GLCreateFrameBuffer( PLGFrameBuffer *buffer ) {
-	glGenFramebuffers( 1, &buffer->fbo );
-	glBindFramebuffer( GL_DRAW_FRAMEBUFFER, buffer->fbo );
+	XGL_CALL( glGenFramebuffers( 1, &buffer->fbo ) );
+	XGL_CALL( glBindFramebuffer( GL_FRAMEBUFFER, buffer->fbo ) );
 
 	if ( buffer->flags & PLG_BUFFER_COLOUR ) {
-		glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] );
-		glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] );
-		glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA, ( int ) buffer->width, ( int ) buffer->height );
-		glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] );
+		XGL_CALL( glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] ) );
+		XGL_CALL( glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] ) );
+		XGL_CALL( glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA, ( int ) buffer->width, ( int ) buffer->height ) );
+		XGL_CALL( glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] ) );
 	}
 
-	if ( buffer->flags & PLG_BUFFER_DEPTH ) {
-		glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] );
-		glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] );
-		glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ( int ) buffer->width, ( int ) buffer->height );
-		glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] );
-	}
-
-	if ( buffer->flags & PLG_BUFFER_STENCIL ) {
-		glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] );
-		glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] );
-		glRenderbufferStorage( GL_RENDERBUFFER, GL_STENCIL, ( int ) buffer->width, ( int ) buffer->height );
-		glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] );
+	if ( ( buffer->flags & PLG_BUFFER_DEPTH ) && ( buffer->flags & PLG_BUFFER_STENCIL ) ) {
+		XGL_CALL( glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] ) );
+		XGL_CALL( glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] ) );
+		XGL_CALL( glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, ( int ) buffer->width, ( int ) buffer->height ) );
+		XGL_CALL( glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] ) );
+	} else if ( buffer->flags & PLG_BUFFER_DEPTH ) {
+		XGL_CALL( glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] ) );
+		XGL_CALL( glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] ) );
+		XGL_CALL( glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, ( int ) buffer->width, ( int ) buffer->height ) );
+		XGL_CALL( glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] ) );
+	} else if ( buffer->flags & PLG_BUFFER_STENCIL ) {
+		XGL_CALL( glGenRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] ) );
+		XGL_CALL( glBindRenderbuffer( GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] ) );
+		XGL_CALL( glRenderbufferStorage( GL_RENDERBUFFER, GL_STENCIL_INDEX8, ( int ) buffer->width, ( int ) buffer->height ) );
+		XGL_CALL( glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] ) );
 	}
 }
 
 static void GLDeleteFrameBuffer( PLGFrameBuffer *buffer ) {
-	if ( buffer ) {
-		glDeleteFramebuffers( 1, &buffer->fbo );
-		if ( buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] ) {
-			glDeleteRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_COLOUR ] );
+	if ( buffer == NULL ) {
+		return;
+	}
+
+	if ( buffer->fbo != 0 ) {
+		XGL_CALL( glDeleteFramebuffers( 1, &buffer->fbo ) );
+		buffer->fbo = 0;
+	}
+
+	for ( unsigned int i = 0; i < PLG_MAX_RENDERBUFFER_TYPES; ++i ) {
+		if ( buffer->renderBuffers[ i ] == 0 ) {
+			continue;
 		}
-		if ( buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] ) {
-			glDeleteRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_DEPTH ] );
-		}
-		if ( buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] ) {
-			glDeleteRenderbuffers( 1, &buffer->renderBuffers[ PLG_RENDERBUFFER_STENCIL ] );
-		}
+
+		XGL_CALL( glDeleteRenderbuffers( 1, &buffer->renderBuffers[ i ] ) );
+		buffer->renderBuffers[ i ] = 0;
 	}
 }
 
 static void GLBindFrameBuffer( PLGFrameBuffer *buffer, PLGFrameBufferObjectTarget target_binding ) {
-	GLuint binding = TranslateFrameBufferBinding( target_binding );
-	if ( buffer ) {
-		glBindFramebuffer( binding, buffer->fbo );
-	} else {
-		glBindFramebuffer( binding, 0 );//Bind default backbuffer
-	}
+	XGL_CALL( glBindFramebuffer( TranslateFrameBufferBinding( target_binding ), ( buffer != NULL ) ? buffer->fbo : 0 ) );
 }
 
 static void GLBlitFrameBuffers( PLGFrameBuffer *src_buffer,
@@ -318,24 +333,15 @@ static void GLBlitFrameBuffers( PLGFrameBuffer *src_buffer,
                                 unsigned int dst_w,
                                 unsigned int dst_h,
                                 bool linear ) {
-	if ( src_buffer ) {
-		glBindFramebuffer( GL_READ_FRAMEBUFFER, src_buffer->fbo );
-	} else {
-		glBindFramebuffer( GL_READ_FRAMEBUFFER, 0 );//Bind default backbuffer
-	}
+	XGL_CALL( glBindFramebuffer( GL_READ_FRAMEBUFFER, ( src_buffer != NULL ) ? src_buffer->fbo : 0 ) );
+	XGL_CALL( glBindFramebuffer( GL_DRAW_FRAMEBUFFER, ( dst_buffer != NULL ) ? dst_buffer->fbo : 0 ) );
 
-	if ( dst_buffer ) {
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, dst_buffer->fbo );
-	} else {
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );//Bind default backbuffer
-	}
-
-	glBlitFramebuffer( 0, 0, src_w, src_h, 0, 0, dst_w, dst_h, GL_COLOR_BUFFER_BIT, linear ? GL_LINEAR : GL_NEAREST );
+	XGL_CALL( glBlitFramebuffer( 0, 0, src_w, src_h, 0, 0, dst_w, dst_h, GL_COLOR_BUFFER_BIT, linear ? GL_LINEAR : GL_NEAREST ) );
 }
 
 static void GLBindTexture( const PLGTexture *texture );
 
-static PLGTexture *GLGetFrameBufferTextureAttachment( PLGFrameBuffer *buffer, unsigned int component, PLGTextureFilter filter ) {
+static PLGTexture *GLGetFrameBufferTextureAttachment( PLGFrameBuffer *buffer, unsigned int components, PLGTextureFilter filter ) {
 	PLGTexture *texture = gInterface->CreateTexture();
 	if ( texture == NULL ) {
 		return NULL;
@@ -344,32 +350,39 @@ static PLGTexture *GLGetFrameBufferTextureAttachment( PLGFrameBuffer *buffer, un
 	/* all of this is going to change later...
 	 * this is just the bare minimum to get things going */
 
+	GLBindFrameBuffer( buffer, PLG_FRAMEBUFFER_DRAW );
 	GLBindTexture( texture );
-
-	int glComponent;
-	unsigned int glType;
-	unsigned int glAttachment;
-	switch ( component ) {
-		case PLG_BUFFER_DEPTH:
-			glComponent = GL_DEPTH_COMPONENT;
-			glType = GL_FLOAT;
-			glAttachment = GL_DEPTH_ATTACHMENT;
-			break;
-		case PLG_BUFFER_COLOUR:
-			glComponent = GL_RGBA;
-			glType = GL_UNSIGNED_BYTE;
-			glAttachment = GL_COLOR_ATTACHMENT0;
-			break;
-	}
-
-	glTexImage2D( GL_TEXTURE_2D, 0, glComponent, buffer->width, buffer->height, 0, glComponent, glType, NULL );
 
 	int min, mag;
 	GL_TranslateTextureFilterFormat( filter, &min, &mag );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag );
+	XGL_CALL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min ) );
+	XGL_CALL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag ) );
 
-	glFramebufferTexture2D( GL_FRAMEBUFFER, glAttachment, GL_TEXTURE_2D, texture->internal.id, 0 );
+	/* sigh... */
+	if ( ( components & PLG_BUFFER_DEPTH ) || ( components & PLG_BUFFER_STENCIL ) ) {
+		if ( ( buffer->flags & PLG_BUFFER_DEPTH ) && ( buffer->flags & PLG_BUFFER_STENCIL ) ) {
+			/* so yeah, this sucks, but if both of these are active we assume it's packed */
+			XGL_CALL( glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, buffer->width, buffer->height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL ) );
+			if ( components & PLG_BUFFER_DEPTH ) {
+				XGL_CALL( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture->internal.id, 0 ) );
+			}
+			if ( components & PLG_BUFFER_STENCIL ) {
+				XGL_CALL( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->internal.id, 0 ) );
+			}
+		} else {
+			/* otherwise, assumed not packed */
+			if ( components & PLG_BUFFER_DEPTH ) {
+				XGL_CALL( glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, buffer->width, buffer->height, 0, GL_DEPTH_ATTACHMENT, GL_UNSIGNED_INT, NULL ) );
+				XGL_CALL( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture->internal.id, 0 ) );
+			} else if ( components & PLG_BUFFER_STENCIL ) {
+				XGL_CALL( glTexImage2D( GL_TEXTURE_2D, 0, GL_STENCIL_INDEX8, buffer->width, buffer->height, 0, GL_STENCIL_ATTACHMENT, GL_UNSIGNED_BYTE, NULL ) );
+				XGL_CALL( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->internal.id, 0 ) );
+			}
+		}
+	} else if ( components & PLG_BUFFER_COLOUR ) {
+		XGL_CALL( glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, buffer->width, buffer->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL ) );
+		XGL_CALL( glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->internal.id, 0 ) );
+	}
 
 	GLBindTexture( NULL );
 
@@ -435,19 +448,19 @@ static unsigned int GetColourFormatForImageFormat( PLImageFormat format ) {
 }
 
 static void GLCreateTexture( PLGTexture *texture ) {
-	glGenTextures( 1, &texture->internal.id );
+	XGL_CALL( glGenTextures( 1, &texture->internal.id ) );
 }
 
 static void GLDeleteTexture( PLGTexture *texture ) {
-	glDeleteTextures( 1, &texture->internal.id );
+	XGL_CALL( glDeleteTextures( 1, &texture->internal.id ) );
 }
 
 static void GLBindTexture( const PLGTexture *texture ) {
 	if ( texture == NULL ) {
-		glBindTexture( GL_TEXTURE_2D, 0 );
+		XGL_CALL( glBindTexture( GL_TEXTURE_2D, 0 ) );
 		return;
 	}
-	glBindTexture( GL_TEXTURE_2D, texture->internal.id );
+	XGL_CALL( glBindTexture( GL_TEXTURE_2D, texture->internal.id ) );
 }
 
 static bool IsCompressedImageFormat( PLImageFormat format ) {
@@ -463,21 +476,17 @@ static bool IsCompressedImageFormat( PLImageFormat format ) {
 	}
 }
 
+static void GLSetTextureFilter( PLGTexture *texture, PLGTextureFilter filter );
 static void GLUploadTexture( PLGTexture *texture, const PLImage *upload ) {
+	GLBindTexture( texture );
+
 	/* was originally GL_CLAMP; deprecated in GL3+, though some drivers
 	 * still seem to accept it anyway except for newer Intel GPUs apparently */
 	/* todo: make this configurable */
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	XGL_CALL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT ) );
+	XGL_CALL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT ) );
 
-	int min, mag;
-	GL_TranslateTextureFilterFormat( texture->filter, &min, &mag );
-	if ( texture->filter == PLG_TEXTURE_FILTER_LINEAR || texture->filter == PLG_TEXTURE_FILTER_NEAREST ) {
-		texture->flags |= PLG_TEXTURE_FLAG_NOMIPS;
-	}
-
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min );
+	GLSetTextureFilter( texture, texture->filter );
 
 	unsigned int levels = upload->levels;
 	if ( levels == 0 ) {
@@ -489,16 +498,16 @@ static void GLUploadTexture( PLGTexture *texture, const PLImage *upload ) {
 		GLsizei w = texture->w / ( unsigned int ) pow( 2, i );
 		GLsizei h = texture->h / ( unsigned int ) pow( 2, i );
 		if ( IsCompressedImageFormat( upload->format ) ) {
-			glCompressedTexImage2D(
+			XGL_CALL( glCompressedTexImage2D(
 			        GL_TEXTURE_2D,
 			        i,
 			        image_format,
 			        w, h,
 			        0,
 			        ( GLsizei ) upload->size,
-			        upload->data[ 0 ] );
+			        upload->data[ 0 ] ) );
 		} else {
-			glTexImage2D(
+			XGL_CALL( glTexImage2D(
 			        GL_TEXTURE_2D,
 			        i,
 			        image_format,
@@ -506,22 +515,37 @@ static void GLUploadTexture( PLGTexture *texture, const PLImage *upload ) {
 			        0,
 			        GetColourFormatForImageFormat( upload->format ),
 			        GetStorageFormatForImageFormat( upload->format ),
-			        upload->data[ 0 ] );
+			        upload->data[ 0 ] ) );
 		}
 	}
 
 	if ( levels == 1 && !( texture->flags & PLG_TEXTURE_FLAG_NOMIPS ) ) {
-		glGenerateMipmap( GL_TEXTURE_2D );
+		XGL_CALL( glGenerateMipmap( GL_TEXTURE_2D ) );
 	}
 }
 
 static void GLSetTextureAnisotropy( PLGTexture *texture, uint32_t value ) {
 	GLBindTexture( texture );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, ( int ) value );
+	XGL_CALL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, ( int ) value ) );
+}
+
+static void GLSetTextureFilter( PLGTexture *texture, PLGTextureFilter filter ) {
+	GLBindTexture( texture );
+
+	int min, mag;
+	GL_TranslateTextureFilterFormat( filter, &min, &mag );
+	if ( filter == PLG_TEXTURE_FILTER_LINEAR || filter == PLG_TEXTURE_FILTER_NEAREST ) {
+		texture->flags |= PLG_TEXTURE_FLAG_NOMIPS;
+	}
+
+	XGL_CALL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag ) );
+	XGL_CALL( glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min ) );
+
+	texture->filter = filter;
 }
 
 static void GLActiveTexture( unsigned int target ) {
-	glActiveTexture( GL_TEXTURE0 + target );
+	XGL_CALL( glActiveTexture( GL_TEXTURE0 + target ) );
 }
 
 /* Swizzle texture channels */
@@ -543,13 +567,13 @@ static int TranslateColourChannel( int channel ) {
 
 static void GLSwizzleTexture( PLGTexture *texture, uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
 	GLBindTexture( texture );
-	if ( GLVersion( 3, 3 ) ) {
+	if ( XGL_VERSION( 3, 3 ) ) {
 		int swizzle[] = {
 		        TranslateColourChannel( r ),
 		        TranslateColourChannel( g ),
 		        TranslateColourChannel( b ),
 		        TranslateColourChannel( a ) };
-		glTexParameteriv( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle );
+		XGL_CALL( glTexParameteriv( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle ) );
 	} else {
 		gInterface->core->ReportError( PL_RESULT_UNSUPPORTED, PL_FUNCTION, "missing software implementation" );
 	}
@@ -604,15 +628,15 @@ enum {
 
 	MAX_GPU_MESH_BUFFERS
 };
-static_assert( MAX_GPU_MESH_BUFFERS < PLG_MAX_MESH_BUFFERS, "Invalid MAX_GL_BUFFERS size!" );
+PL_STATIC_ASSERT( MAX_GPU_MESH_BUFFERS < PLG_MAX_MESH_BUFFERS, "Invalid MAX_GL_BUFFERS size!" );
 
 static void GLCreateMesh( PLGMesh *mesh ) {
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
 	// Create our internal buffers for GL
-	glGenBuffers( MAX_GPU_MESH_BUFFERS, mesh->buffers );
+	XGL_CALL( glGenBuffers( MAX_GPU_MESH_BUFFERS, mesh->buffers ) );
 }
 
 static void GLUploadMesh( PLGMesh *mesh, PLGShaderProgram *program ) {
@@ -620,65 +644,65 @@ static void GLUploadMesh( PLGMesh *mesh, PLGShaderProgram *program ) {
 		return;
 
 	//Bind VBO
-	glBindBuffer( GL_ARRAY_BUFFER, mesh->buffers[ BUFFER_VERTEX_DATA ] );
+	XGL_CALL( glBindBuffer( GL_ARRAY_BUFFER, mesh->buffers[ BUFFER_VERTEX_DATA ] ) );
 
 	//Write the current CPU vertex data into the VBO
 	unsigned int drawMode = TranslateDrawMode( mesh->mode );
-	glBufferData( GL_ARRAY_BUFFER, ( GLsizei ) ( sizeof( PLGVertex ) * mesh->num_verts ), &mesh->vertices[ 0 ], drawMode );
+	XGL_CALL( glBufferData( GL_ARRAY_BUFFER, ( GLsizei ) ( sizeof( PLGVertex ) * mesh->num_verts ), &mesh->vertices[ 0 ], drawMode ) );
 
 	//Point to the different substreams of the interleaved BVO
 	//Args: Index, Size, Type, (Normalized), Stride, StartPtr
 
 	if ( mesh->buffers[ BUFFER_ELEMENT_DATA ] != 0 ) {
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->buffers[ BUFFER_ELEMENT_DATA ] );
-		glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( unsigned int ) * mesh->num_indices, &mesh->indices[ 0 ], drawMode );
+		XGL_CALL( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->buffers[ BUFFER_ELEMENT_DATA ] ) );
+		XGL_CALL( glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof( unsigned int ) * mesh->num_indices, &mesh->indices[ 0 ], drawMode ) );
 	}
 
 	mesh->isDirty = false;
 }
 
 static void GLDeleteMesh( PLGMesh *mesh ) {
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
-	glDeleteBuffers( MAX_GPU_MESH_BUFFERS, mesh->buffers );
+	XGL_CALL( glDeleteBuffers( MAX_GPU_MESH_BUFFERS, mesh->buffers ) );
 }
 
 static void GLDrawInstancedMesh( PLGMesh *mesh, PLGShaderProgram *program, const PLMatrix4 *transforms, unsigned int instanceCount ) {
 	if ( program == NULL ) {
-		GLLog( "no shader assigned!\n" );
+		XGL_LOG( "no shader assigned!\n" );
 		return;
 	}
 
 	if ( mesh->buffers[ BUFFER_VERTEX_DATA ] == 0 ) {
-		GLLog( "invalid buffer provided, skipping draw!\n" );
+		XGL_LOG( "invalid buffer provided, skipping draw!\n" );
 		return;
 	}
 
 	//Ensure VAO/VBO/EBO are bound
-	glBindVertexArray( VAO[ 0 ] );
+	XGL_CALL( glBindVertexArray( VAO[ 0 ] ) );
 
-	glBindBuffer( GL_ARRAY_BUFFER, mesh->buffers[ BUFFER_VERTEX_DATA ] );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->buffers[ BUFFER_ELEMENT_DATA ] );
+	XGL_CALL( glBindBuffer( GL_ARRAY_BUFFER, mesh->buffers[ BUFFER_VERTEX_DATA ] ) );
+	XGL_CALL( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->buffers[ BUFFER_ELEMENT_DATA ] ) );
 
 	//draw
 	GLuint mode = TranslatePrimitiveMode( mesh->primitive );
 	if ( mesh->num_indices > 0 ) {
-		glDrawElementsInstanced( mode, mesh->num_indices, GL_UNSIGNED_INT, 0, instanceCount );
+		XGL_CALL( glDrawElementsInstanced( mode, mesh->num_indices, GL_UNSIGNED_INT, 0, instanceCount ) );
 	} else {
-		glDrawArraysInstanced( mode, 0, mesh->num_verts, instanceCount );
+		XGL_CALL( glDrawArraysInstanced( mode, 0, mesh->num_verts, instanceCount ) );
 	}
 }
 
 static void GLDrawMesh( PLGMesh *mesh, PLGShaderProgram *program ) {
 	if ( program == NULL ) {
-		GLLog( "No shader assigned!\n" );
+		XGL_LOG( "No shader assigned!\n" );
 		return;
 	}
 
 	/* anything less and we'll just fallback to immediate */
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		/* todo... */
 		for ( unsigned int i = 0; i < program->num_stages; ++i ) {
 			PLGShaderStage *stage = program->stages[ i ];
@@ -689,75 +713,75 @@ static void GLDrawMesh( PLGMesh *mesh, PLGShaderProgram *program ) {
 			stage->SWFallback( program, stage->type );
 
 			GLuint mode = TranslatePrimitiveMode( mesh->primitive );
-			glBegin( mode );
+			XGL_CALL( glBegin( mode ) );
 			if ( mode == GL_TRIANGLES ) {
 				for ( unsigned int j = 0; j < mesh->num_indices; ++j ) {
 					PLGVertex *vertex = &mesh->vertices[ mesh->indices[ j ] ];
-					glVertex3f( vertex->position.x, vertex->position.y, vertex->position.z );
-					glNormal3f( vertex->normal.x, vertex->normal.y, vertex->normal.z );
-					glColor4ub( vertex->colour.r, vertex->colour.g, vertex->colour.b, vertex->colour.a );
+					XGL_CALL( glVertex3f( vertex->position.x, vertex->position.y, vertex->position.z ) );
+					XGL_CALL( glNormal3f( vertex->normal.x, vertex->normal.y, vertex->normal.z ) );
+					XGL_CALL( glColor4ub( vertex->colour.r, vertex->colour.g, vertex->colour.b, vertex->colour.a ) );
 				}
 			} else {
 				for ( unsigned int j = 0; j < mesh->num_verts; ++j ) {
 					PLGVertex *vertex = &mesh->vertices[ j ];
-					glVertex3f( vertex->position.x, vertex->position.y, vertex->position.z );
-					glNormal3f( vertex->normal.x, vertex->normal.y, vertex->normal.z );
-					glColor4ub( vertex->colour.r, vertex->colour.g, vertex->colour.b, vertex->colour.a );
+					XGL_CALL( glVertex3f( vertex->position.x, vertex->position.y, vertex->position.z ) );
+					XGL_CALL( glNormal3f( vertex->normal.x, vertex->normal.y, vertex->normal.z ) );
+					XGL_CALL( glColor4ub( vertex->colour.r, vertex->colour.g, vertex->colour.b, vertex->colour.a ) );
 				}
 			}
-			glEnd();
+			XGL_CALL( glEnd() );
 		}
 		return;
 	}
 
 	if ( mesh->buffers[ BUFFER_VERTEX_DATA ] == 0 ) {
-		GLLog( "invalid vertex buffer provided, skipping draw!\n" );
+		XGL_LOG( "invalid vertex buffer provided, skipping draw!\n" );
 		return;
 	} else if ( mesh->num_indices > 0 && mesh->buffers[ BUFFER_ELEMENT_DATA ] == 0 ) {
-		GLLog( "invalid element buffer provided, skipping draw!\n" );
+		XGL_LOG( "invalid element buffer provided, skipping draw!\n" );
 		return;
 	}
 
 	//Ensure VAO/VBO/EBO are bound
-	if ( GLVersion( 3, 0 ) ) {
-		glBindVertexArray( VAO[ 0 ] );
+	if ( XGL_VERSION( 3, 0 ) ) {
+		XGL_CALL( glBindVertexArray( VAO[ 0 ] ) );
 		/* todo: fallback for legacy... */
 	}
 
-	glBindBuffer( GL_ARRAY_BUFFER, mesh->buffers[ BUFFER_VERTEX_DATA ] );
+	XGL_CALL( glBindBuffer( GL_ARRAY_BUFFER, mesh->buffers[ BUFFER_VERTEX_DATA ] ) );
 
 	if ( program->internal.v_position != -1 ) {
-		glEnableVertexAttribArray( program->internal.v_position );
-		glVertexAttribPointer( program->internal.v_position, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, position ) );
+		XGL_CALL( glEnableVertexAttribArray( program->internal.v_position ) );
+		XGL_CALL( glVertexAttribPointer( program->internal.v_position, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, position ) ) );
 	}
 	if ( program->internal.v_normal != -1 ) {
-		glEnableVertexAttribArray( program->internal.v_normal );
-		glVertexAttribPointer( program->internal.v_normal, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, normal ) );
+		XGL_CALL( glEnableVertexAttribArray( program->internal.v_normal ) );
+		XGL_CALL( glVertexAttribPointer( program->internal.v_normal, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, normal ) ) );
 	}
 	if ( program->internal.v_uv != -1 ) {
-		glEnableVertexAttribArray( program->internal.v_uv );
-		glVertexAttribPointer( program->internal.v_uv, 2, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, st ) );
+		XGL_CALL( glEnableVertexAttribArray( program->internal.v_uv ) );
+		XGL_CALL( glVertexAttribPointer( program->internal.v_uv, 2, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, st ) ) );
 	}
 	if ( program->internal.v_colour != -1 ) {
-		glEnableVertexAttribArray( program->internal.v_colour );
-		glVertexAttribPointer( program->internal.v_colour, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, colour ) );
+		XGL_CALL( glEnableVertexAttribArray( program->internal.v_colour ) );
+		XGL_CALL( glVertexAttribPointer( program->internal.v_colour, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, colour ) ) );
 	}
 	if ( program->internal.v_tangent != -1 ) {
-		glEnableVertexAttribArray( program->internal.v_tangent );
-		glVertexAttribPointer( program->internal.v_tangent, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, tangent ) );
+		XGL_CALL( glEnableVertexAttribArray( program->internal.v_tangent ) );
+		XGL_CALL( glVertexAttribPointer( program->internal.v_tangent, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, tangent ) ) );
 	}
 	if ( program->internal.v_bitangent != -1 ) {
-		glEnableVertexAttribArray( program->internal.v_bitangent );
-		glVertexAttribPointer( program->internal.v_bitangent, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, bitangent ) );
+		XGL_CALL( glEnableVertexAttribArray( program->internal.v_bitangent ) );
+		XGL_CALL( glVertexAttribPointer( program->internal.v_bitangent, 3, GL_FLOAT, GL_FALSE, sizeof( PLGVertex ), ( const GLvoid * ) pl_offsetof( PLGVertex, bitangent ) ) );
 	}
 
 	//draw
 	GLuint mode = TranslatePrimitiveMode( mesh->primitive );
 	if ( mesh->num_indices > 0 ) {
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->buffers[ BUFFER_ELEMENT_DATA ] );
-		glDrawElements( mode, mesh->num_indices, GL_UNSIGNED_INT, 0 );
+		XGL_CALL( glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh->buffers[ BUFFER_ELEMENT_DATA ] ) );
+		XGL_CALL( glDrawElements( mode, mesh->num_indices, GL_UNSIGNED_INT, 0 ) );
 	} else {
-		glDrawArrays( mode, 0, mesh->num_verts );
+		XGL_CALL( glDrawArrays( mode, 0, mesh->num_verts ) );
 	}
 }
 
@@ -781,18 +805,18 @@ static void GLDestroyCamera( PLGCamera *camera ) {
 static void GLSetupCamera( PLGCamera *camera ) {
 	plAssert( camera );
 
-	if ( camera->viewport.auto_scale && GLVersion( 3, 0 ) ) {
+	if ( camera->viewport.auto_scale && XGL_VERSION( 3, 0 ) ) {
 		GLint bound_rbo_w, bound_rbo_h;
-		glGetRenderbufferParameteriv( GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &bound_rbo_w );
-		glGetRenderbufferParameteriv( GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &bound_rbo_h );
+		XGL_CALL( glGetRenderbufferParameteriv( GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &bound_rbo_w ) );
+		XGL_CALL( glGetRenderbufferParameteriv( GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &bound_rbo_h ) );
 		camera->viewport.x = 0;
 		camera->viewport.y = 0;
 		camera->viewport.w = bound_rbo_w;
 		camera->viewport.h = bound_rbo_h;
 	}
 
-	glViewport( camera->viewport.x, camera->viewport.y, camera->viewport.w, camera->viewport.h );
-	glScissor( camera->viewport.x, camera->viewport.y, camera->viewport.w, camera->viewport.h );
+	XGL_CALL( glViewport( camera->viewport.x, camera->viewport.y, camera->viewport.w, camera->viewport.h ) );
+	XGL_CALL( glScissor( camera->viewport.x, camera->viewport.y, camera->viewport.w, camera->viewport.h ) );
 }
 
 /////////////////////////////////////////////////////////////
@@ -855,7 +879,7 @@ static PLGShaderUniformType GLConvertGLUniformType( unsigned int type ) {
 			return PLG_UNIFORM_SAMPLER2DSHADOW;
 
 		default: {
-			GLLog( "Unhandled GLSL data type, \"%u\"!\n", type );
+			XGL_LOG( "Unhandled GLSL data type, \"%u\"!\n", type );
 			return PLG_INVALID_UNIFORM;
 		}
 	}
@@ -1069,7 +1093,7 @@ static char *GLPreProcessGLSLShader( PLGShaderStage *stage, char *buf, size_t *l
 					dstPos = InsertString( incBuf, &dstBuffer, &actualLength, &maxLength );
 					gInterface->core->Free( incBuf );
 				} else {
-					GLLog( "Failed to load include \"%s\": %s\n", gInterface->core->GetError() );
+					XGL_LOG( "Failed to load include \"%s\": %s\n", gInterface->core->GetError() );
 				}
 
 				gInterface->core->SkipLine( &srcPos );
@@ -1101,14 +1125,14 @@ static char *GLPreProcessGLSLShader( PLGShaderStage *stage, char *buf, size_t *l
 }
 
 static void GLCreateShaderProgram( PLGShaderProgram *program ) {
-	if ( !GLVersion( 2, 0 ) ) {
-		GLLog( "HW shaders unsupported on platform, relying on SW fallback\n" );
+	if ( !XGL_VERSION( 2, 0 ) ) {
+		XGL_LOG( "HW shaders unsupported on platform, relying on SW fallback\n" );
 		return;
 	}
 
 	program->internal.id = glCreateProgram();
 	if ( program->internal.id == 0 ) {
-		GLLog( "Failed to generate shader program!\n" );
+		XGL_LOG( "Failed to generate shader program!\n" );
 		return;
 	}
 }
@@ -1118,7 +1142,7 @@ static void GLDestroyShaderProgram( PLGShaderProgram *program ) {
 		return;
 	}
 
-	if ( GLVersion( 2, 0 ) ) {
+	if ( XGL_VERSION( 2, 0 ) ) {
 		glDeleteProgram( program->internal.id );
 	}
 
@@ -1126,8 +1150,8 @@ static void GLDestroyShaderProgram( PLGShaderProgram *program ) {
 }
 
 static void GLCreateShaderStage( PLGShaderStage *stage ) {
-	if ( !GLVersion( 2, 0 ) ) {
-		GLLog( "HW shaders unsupported on platform, relying on SW fallback\n" );
+	if ( !XGL_VERSION( 2, 0 ) ) {
+		XGL_LOG( "HW shaders unsupported on platform, relying on SW fallback\n" );
 		return;
 	}
 
@@ -1137,12 +1161,12 @@ static void GLCreateShaderStage( PLGShaderStage *stage ) {
 		return;
 	}
 
-	if ( type == GL_GEOMETRY_SHADER && !GLVersion( 3, 0 ) ) {
+	if ( type == GL_GEOMETRY_SHADER && !XGL_VERSION( 3, 0 ) ) {
 		gInterface->core->ReportError( PL_RESULT_UNSUPPORTED_SHADER_TYPE, PL_FUNCTION, "%s", GetGLShaderStageDescriptor( type ) );
 		return;
 	}
 
-	if ( type == GL_COMPUTE_SHADER && !GLVersion( 4, 3 ) ) {
+	if ( type == GL_COMPUTE_SHADER && !XGL_VERSION( 4, 3 ) ) {
 		gInterface->core->ReportError( PL_RESULT_UNSUPPORTED_SHADER_TYPE, PL_FUNCTION, "%s", GetGLShaderStageDescriptor( type ) );
 		return;
 	}
@@ -1155,29 +1179,29 @@ static void GLCreateShaderStage( PLGShaderStage *stage ) {
 }
 
 static void GLDestroyShaderStage( PLGShaderStage *stage ) {
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
 	if ( stage->program != NULL ) {
-		glDetachShader( stage->program->internal.id, stage->internal.id );
+		XGL_CALL( glDetachShader( stage->program->internal.id, stage->internal.id ) );
 		stage->program = NULL;
 	}
 
-	glDeleteShader( stage->internal.id );
+	XGL_CALL( glDeleteShader( stage->internal.id ) );
 	stage->internal.id = 0;
 }
 
 static void GLAttachShaderStage( PLGShaderProgram *program, PLGShaderStage *stage ) {
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
-	glAttachShader( program->internal.id, stage->internal.id );
+	XGL_CALL( glAttachShader( program->internal.id, stage->internal.id ) );
 }
 
 static void GLCompileShaderStage( PLGShaderStage *stage, const char *buf, size_t length ) {
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
@@ -1187,18 +1211,18 @@ static void GLCompileShaderStage( PLGShaderStage *stage, const char *buf, size_t
 
 	temp = GLPreProcessGLSLShader( stage, temp, &length, true );
 
-	glShaderSource( stage->internal.id, 1, ( const GLchar ** ) &temp, ( GLint * ) &length );
-	glCompileShader( stage->internal.id );
+	XGL_CALL( glShaderSource( stage->internal.id, 1, ( const GLchar ** ) &temp, ( GLint * ) &length ) );
+	XGL_CALL( glCompileShader( stage->internal.id ) );
 
 	int status;
-	glGetShaderiv( stage->internal.id, GL_COMPILE_STATUS, &status );
+	XGL_CALL( glGetShaderiv( stage->internal.id, GL_COMPILE_STATUS, &status ) );
 	if ( status == 0 ) {
 		int s_length;
-		glGetShaderiv( stage->internal.id, GL_INFO_LOG_LENGTH, &s_length );
+		XGL_CALL( glGetShaderiv( stage->internal.id, GL_INFO_LOG_LENGTH, &s_length ) );
 		if ( s_length > 1 ) {
 			char *log = gInterface->core->CAlloc( ( size_t ) s_length, sizeof( char ), true );
-			glGetShaderInfoLog( stage->internal.id, s_length, NULL, log );
-			GLLog( " COMPILE ERROR:\n%s\n", log );
+			XGL_CALL( glGetShaderInfoLog( stage->internal.id, s_length, NULL, log ) );
+			XGL_LOG( " COMPILE ERROR:\n%s\n", log );
 			gInterface->core->ReportError( PL_RESULT_SHADER_COMPILE, "%s", log );
 			gInterface->core->Free( log );
 		}
@@ -1210,44 +1234,38 @@ static void GLCompileShaderStage( PLGShaderStage *stage, const char *buf, size_t
 static void GLSetShaderUniformValue( PLGShaderProgram *program, int slot, const void *value, bool transpose ) {
 	switch ( program->uniforms[ slot ].type ) {
 		case PLG_UNIFORM_FLOAT:
-			glUniform1f( program->uniforms[ slot ].slot, *( float * ) value );
+			XGL_CALL( glUniform1f( program->uniforms[ slot ].slot, *( float * ) value ) );
 			break;
 		case PLG_UNIFORM_SAMPLER2D:
 		case PLG_UNIFORM_INT:
-			glUniform1i( program->uniforms[ slot ].slot, *( int * ) value );
+			XGL_CALL( glUniform1i( program->uniforms[ slot ].slot, *( int * ) value ) );
 			break;
 		case PLG_UNIFORM_UINT:
-			glUniform1ui( program->uniforms[ slot ].slot, *( unsigned int * ) value );
+			XGL_CALL( glUniform1ui( program->uniforms[ slot ].slot, *( unsigned int * ) value ) );
 			break;
 		case PLG_UNIFORM_BOOL:
-			glUniform1i( program->uniforms[ slot ].slot, *( bool * ) value );
+			XGL_CALL( glUniform1i( program->uniforms[ slot ].slot, *( bool * ) value ) );
 			break;
 		case PLG_UNIFORM_DOUBLE:
-			glUniform1d( program->uniforms[ slot ].slot, *( double * ) value );
+			XGL_CALL( glUniform1d( program->uniforms[ slot ].slot, *( double * ) value ) );
 			break;
-		case PLG_UNIFORM_VEC2: {
-			PLVector2 vec2 = *( PLVector2 * ) value;
-			glUniform2f( program->uniforms[ slot ].slot, vec2.x, vec2.y );
+		case PLG_UNIFORM_VEC2:
+			XGL_CALL( glUniform2fv( program->uniforms[ slot ].slot, 1, value ) );
 			break;
-		}
-		case PLG_UNIFORM_VEC3: {
-			PLVector3 vec3 = *( PLVector3 * ) value;
-			glUniform3f( program->uniforms[ slot ].slot, vec3.x, vec3.y, vec3.z );
+		case PLG_UNIFORM_VEC3:
+			XGL_CALL( glUniform3fv( program->uniforms[ slot ].slot, 1, value ) );
 			break;
-		}
-		case PLG_UNIFORM_VEC4: {
-			PLVector4 vec4 = *( PLVector4 * ) value;
-			glUniform4f( program->uniforms[ slot ].slot, vec4.x, vec4.y, vec4.z, vec4.w );
+		case PLG_UNIFORM_VEC4:
+			XGL_CALL( glUniform4fv( program->uniforms[ slot ].slot, 1, value ) );
 			break;
-		}
 		case PLG_UNIFORM_MAT3: {
 			PLMatrix3 mat3 = *( PLMatrix3 * ) value;
-			glUniformMatrix3fv( program->uniforms[ slot ].slot, 1, transpose ? GL_TRUE : GL_FALSE, mat3.m );
+			XGL_CALL( glUniformMatrix3fv( program->uniforms[ slot ].slot, 1, transpose ? GL_TRUE : GL_FALSE, mat3.m ) );
 			break;
 		}
 		case PLG_UNIFORM_MAT4: {
 			PLMatrix4 mat4 = *( PLMatrix4 * ) value;
-			glUniformMatrix4fv( program->uniforms[ slot ].slot, 1, transpose ? GL_TRUE : GL_FALSE, mat4.m );
+			XGL_CALL( glUniformMatrix4fv( program->uniforms[ slot ].slot, 1, transpose ? GL_TRUE : GL_FALSE, mat4.m ) );
 			break;
 		}
 		default:
@@ -1258,16 +1276,16 @@ static void GLSetShaderUniformValue( PLGShaderProgram *program, int slot, const 
 static void GLSetShaderUniformMatrix4( PLGShaderProgram *program, int slot, PLMatrix4 value, bool transpose ) {
 	PlUnused( program );
 
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
-	glUniformMatrix4fv( slot, 1, transpose ? GL_TRUE : GL_FALSE, value.m );
+	XGL_CALL( glUniformMatrix4fv( slot, 1, transpose ? GL_TRUE : GL_FALSE, value.m ) );
 }
 
 static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 	if ( program->uniforms != NULL ) {
-		GLLog( "Uniforms have already been initialised!\n" );
+		XGL_LOG( "Uniforms have already been initialised!\n" );
 		return;
 	}
 
@@ -1279,10 +1297,10 @@ static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 	program->internal.v_bitangent = glGetAttribLocation( program->internal.id, "pl_vbitangent" );
 
 	int num_uniforms = 0;
-	glGetProgramiv( program->internal.id, GL_ACTIVE_UNIFORMS, &num_uniforms );
+	XGL_CALL( glGetProgramiv( program->internal.id, GL_ACTIVE_UNIFORMS, &num_uniforms ) );
 	if ( num_uniforms <= 0 ) {
 		/* true, because technically this isn't a fault - there just aren't any */
-		GLLog( "No uniforms found in shader program...\n" );
+		XGL_LOG( "No uniforms found in shader program...\n" );
 		return;
 	}
 	program->num_uniforms = ( unsigned int ) num_uniforms;
@@ -1293,7 +1311,7 @@ static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 	unsigned int registered = 0;
 	for ( unsigned int i = 0; i < program->num_uniforms; ++i ) {
 		int maxUniformNameLength;
-		glGetActiveUniformsiv( program->internal.id, 1, &i, GL_UNIFORM_NAME_LENGTH, &maxUniformNameLength );
+		XGL_CALL( glGetActiveUniformsiv( program->internal.id, 1, &i, GL_UNIFORM_NAME_LENGTH, &maxUniformNameLength ) );
 
 		GLchar *uniformName = gInterface->core->MAlloc( maxUniformNameLength, true );
 		GLsizei nameLength;
@@ -1301,11 +1319,11 @@ static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 		GLenum glType;
 		GLint uniformSize;
 
-		glGetActiveUniform( program->internal.id, i, maxUniformNameLength, &nameLength, &uniformSize, &glType, uniformName );
+		XGL_CALL( glGetActiveUniform( program->internal.id, i, maxUniformNameLength, &nameLength, &uniformSize, &glType, uniformName ) );
 		if ( nameLength == 0 ) {
 			gInterface->core->Free( uniformName );
 
-			GLLog( "No information available for uniform %d!\n", i );
+			XGL_LOG( "No information available for uniform %d!\n", i );
 			continue;
 		}
 
@@ -1316,35 +1334,35 @@ static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 		/* fetch it's current value, assume it's the default */
 		switch ( program->uniforms[ i ].type ) {
 			case PLG_UNIFORM_FLOAT:
-				glGetUniformfv( program->internal.id, i, &program->uniforms[ i ].defaultFloat );
+				XGL_CALL( glGetUniformfv( program->internal.id, i, &program->uniforms[ i ].defaultFloat ) );
 				break;
 			case PLG_UNIFORM_SAMPLER2D:
 			case PLG_UNIFORM_INT:
-				glGetUniformiv( program->internal.id, i, &program->uniforms[ i ].defaultInt );
+				XGL_CALL( glGetUniformiv( program->internal.id, i, &program->uniforms[ i ].defaultInt ) );
 				break;
 			case PLG_UNIFORM_UINT:
-				glGetUniformuiv( program->internal.id, i, &program->uniforms[ i ].defaultUInt );
+				XGL_CALL( glGetUniformuiv( program->internal.id, i, &program->uniforms[ i ].defaultUInt ) );
 				break;
 			case PLG_UNIFORM_BOOL:
-				glGetUniformiv( program->internal.id, i, ( GLint * ) &program->uniforms[ i ].defaultBool );
+				XGL_CALL( glGetUniformiv( program->internal.id, i, ( GLint * ) &program->uniforms[ i ].defaultBool ) );
 				break;
 			case PLG_UNIFORM_DOUBLE:
-				glGetUniformdv( program->internal.id, i, &program->uniforms[ i ].defaultDouble );
+				XGL_CALL( glGetUniformdv( program->internal.id, i, &program->uniforms[ i ].defaultDouble ) );
 				break;
 			case PLG_UNIFORM_VEC2:
-				glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultVec2 );
+				XGL_CALL( glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultVec2 ) );
 				break;
 			case PLG_UNIFORM_VEC3:
-				glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultVec3 );
+				XGL_CALL( glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultVec3 ) );
 				break;
 			case PLG_UNIFORM_VEC4:
-				glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultVec4 );
+				XGL_CALL( glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultVec4 ) );
 				break;
 			case PLG_UNIFORM_MAT3:
-				glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultMat3 );
+				XGL_CALL( glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultMat3 ) );
 				break;
 			case PLG_UNIFORM_MAT4:
-				glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultMat4 );
+				XGL_CALL( glGetUniformfv( program->internal.id, i, ( GLfloat * ) &program->uniforms[ i ].defaultMat4 ) );
 				break;
 			default:
 				break;
@@ -1356,12 +1374,12 @@ static void RegisterShaderProgramData( PLGShaderProgram *program ) {
 	}
 
 	if ( registered == 0 ) {
-		GLLog( "Failed to validate any shader program uniforms!\n" );
+		XGL_LOG( "Failed to validate any shader program uniforms!\n" );
 	}
 }
 
 static void GLSetShaderProgram( PLGShaderProgram *program ) {
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
@@ -1370,7 +1388,7 @@ static void GLSetShaderProgram( PLGShaderProgram *program ) {
 		id = program->internal.id;
 	}
 
-	glUseProgram( id );
+	XGL_CALL( glUseProgram( id ) );
 }
 
 #define SHADER_CACHE_MAGIC PL_MAGIC_TO_NUM( 'G', 'L', 'S', 'B' )
@@ -1388,36 +1406,36 @@ static void CacheShaderProgram( PLGShaderProgram *program ) {
 		return;
 	}
 
-	if ( !GLVersion( 4, 1 ) && !GLEW_ARB_get_program_binary ) {
-		GLLog( "Shader cache unsupported, skipping.\n" );
+	if ( !XGL_VERSION( 4, 1 ) && !GLEW_ARB_get_program_binary ) {
+		XGL_LOG( "Shader cache unsupported, skipping.\n" );
 		return;
 	}
 
 	if ( *program->id == '\0' ) {
-		GLLog( "No valid ID provided for program, skipping caching.\n" );
+		XGL_LOG( "No valid ID provided for program, skipping caching.\n" );
 		return;
 	}
 
 	PLPath path;
 	snprintf( path, sizeof( path ), "%s%s.glb", cacheLocation, program->id );
 	if ( gInterface->core->LocalFileExists( path ) ) {
-		GLLog( "Program has already been cached, skipping.\n" );
+		XGL_LOG( "Program has already been cached, skipping.\n" );
 		return;
 	}
 
 	int length;
-	glGetProgramiv( program->internal.id, GL_PROGRAM_BINARY_LENGTH, &length );
+	XGL_CALL( glGetProgramiv( program->internal.id, GL_PROGRAM_BINARY_LENGTH, &length ) );
 
 	uint32_t format;
 	void *buf = gInterface->core->MAlloc( length, true );
-	glGetProgramBinary( program->internal.id, length, NULL, &format, buf );
+	XGL_CALL( glGetProgramBinary( program->internal.id, length, NULL, &format, buf ) );
 
 	uint32_t checksum;
 	gInterface->core->GenerateChecksumCRC32( buf, length, &checksum );
 
 	FILE *file = fopen( path, "wb" );
 	if ( file == NULL ) {
-		GLLog( "Failed to open write location: %s\n", path );
+		XGL_LOG( "Failed to open write location: %s\n", path );
 		return;
 	}
 
@@ -1434,25 +1452,25 @@ static void CacheShaderProgram( PLGShaderProgram *program ) {
 }
 
 static void GLLinkShaderProgram( PLGShaderProgram *program ) {
-	if ( !GLVersion( 2, 0 ) ) {
+	if ( !XGL_VERSION( 2, 0 ) ) {
 		return;
 	}
 
-	glLinkProgram( program->internal.id );
+	XGL_CALL( glLinkProgram( program->internal.id ) );
 
 	int status;
-	glGetProgramiv( program->internal.id, GL_LINK_STATUS, &status );
+	XGL_CALL( glGetProgramiv( program->internal.id, GL_LINK_STATUS, &status ) );
 	if ( status == 0 ) {
 		int s_length;
-		glGetProgramiv( program->internal.id, GL_INFO_LOG_LENGTH, &s_length );
+		XGL_CALL( glGetProgramiv( program->internal.id, GL_INFO_LOG_LENGTH, &s_length ) );
 		if ( s_length > 1 ) {
 			char *log = gInterface->core->CAlloc( ( size_t ) s_length, sizeof( char ), true );
-			glGetProgramInfoLog( program->internal.id, s_length, NULL, log );
-			GLLog( " LINK ERROR:\n%s\n", log );
+			XGL_CALL( glGetProgramInfoLog( program->internal.id, s_length, NULL, log ) );
+			XGL_LOG( " LINK ERROR:\n%s\n", log );
 			gInterface->core->Free( log );
 			gInterface->core->ReportError( PL_RESULT_SHADER_COMPILE, "%s", log );
 		} else {
-			GLLog( " UNKNOWN LINK ERROR!\n" );
+			XGL_LOG( " UNKNOWN LINK ERROR!\n" );
 		}
 
 		return;
@@ -1472,12 +1490,12 @@ unsigned int TranslateGraphicsState( PLGDrawState state ) {
 		default:
 			break;
 		case PLG_GFX_STATE_FOG:
-			if ( GLVersion( 3, 0 ) ) {
+			if ( XGL_VERSION( 3, 0 ) ) {
 				return 0;
 			}
 			return GL_FOG;
 		case PLG_GFX_STATE_ALPHATEST:
-			if ( GLVersion( 3, 0 ) ) {
+			if ( XGL_VERSION( 3, 0 ) ) {
 				return 0;
 			}
 			return GL_ALPHA_TEST;
@@ -1504,28 +1522,28 @@ void GLEnableState( PLGDrawState state ) {
 	unsigned int gl_state = TranslateGraphicsState( state );
 	if ( !gl_state ) {
 		if ( state == PLG_GFX_STATE_WIREFRAME ) {
-			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+			XGL_CALL( glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ) );
 		}
 
 		/* probably unsupported */
 		return;
 	}
 
-	glEnable( gl_state );
+	XGL_CALL( glEnable( gl_state ) );
 }
 
 void GLDisableState( PLGDrawState state ) {
 	unsigned int gl_state = TranslateGraphicsState( state );
 	if ( !gl_state ) {
 		if ( state == PLG_GFX_STATE_WIREFRAME ) {
-			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+			XGL_CALL( glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) );
 		}
 
 		/* probably unsupported */
 		return;
 	}
 
-	glDisable( gl_state );
+	XGL_CALL( glDisable( gl_state ) );
 }
 
 /////////////////////////////////////////////////////////////
@@ -1585,17 +1603,17 @@ static void MessageCallback(
 	}
 
 	if ( message != NULL && message[ 0 ] != '\0' ) {
-		GLLog( "(%s) %s - %s\n", s_type, s_severity, message );
+		XGL_LOG( "(%s) %s - %s\n", s_type, s_severity, message );
 	}
 }
 #endif
 
-void GLInitialize( void ) {
+PLFunctionResult GLInitialize( void ) {
 	glewExperimental = true;
 	GLenum err = glewInit();
 	if ( err != GLEW_OK ) {
 		gInterface->core->ReportError( PL_RESULT_GRAPHICSINIT, "failed to initialize glew, %s", ( char * ) glewGetErrorString( err ) );
-		return;
+		return PL_RESULT_GRAPHICSINIT;
 	}
 
 	memset( &gl_capabilities, 0, sizeof( gl_capabilities ) );
@@ -1604,7 +1622,7 @@ void GLInitialize( void ) {
 	gl_version_major = ( version[ 0 ] - '0' );
 	gl_version_minor = ( version[ 2 ] - '0' );
 
-	if ( GLVersion( 3, 0 ) ) {
+	if ( XGL_VERSION( 3, 0 ) ) {
 		int minor, major;
 		glGetIntegerv( GL_MAJOR_VERSION, &major );
 		glGetIntegerv( GL_MINOR_VERSION, &minor );
@@ -1612,17 +1630,17 @@ void GLInitialize( void ) {
 			gl_version_major = major;
 			gl_version_minor = minor;
 		} else {
-			GLLog( "failed to get OpenGL version, expect some functionality not to work!\n" );
+			XGL_LOG( "failed to get OpenGL version, expect some functionality not to work!\n" );
 		}
 	}
 
-	GLLog( " OpenGL %d.%d\n", gl_version_major, gl_version_minor );
-	GLLog( "  renderer:   %s\n", ( const char * ) glGetString( GL_RENDERER ) );
-	GLLog( "  vendor:     %s\n", ( const char * ) glGetString( GL_VENDOR ) );
-	GLLog( "  version:    %s\n", version );
+	XGL_LOG( " OpenGL %d.%d\n", gl_version_major, gl_version_minor );
+	XGL_LOG( "  renderer:   %s\n", ( const char * ) glGetString( GL_RENDERER ) );
+	XGL_LOG( "  vendor:     %s\n", ( const char * ) glGetString( GL_VENDOR ) );
+	XGL_LOG( "  version:    %s\n", version );
 	//GLLog( "  extensions:\n" );
 
-	glGetIntegerv( GL_NUM_EXTENSIONS, ( GLint * ) ( &gl_num_extensions ) );
+	XGL_CALL( glGetIntegerv( GL_NUM_EXTENSIONS, ( GLint * ) ( &gl_num_extensions ) ) );
 	for ( unsigned int i = 0; i < gl_num_extensions; ++i ) {
 		const uint8_t *extension = glGetStringi( GL_EXTENSIONS, i );
 		snprintf( gl_extensions[ i ], sizeof( gl_extensions[ i ] ), "%s", extension );
@@ -1630,30 +1648,32 @@ void GLInitialize( void ) {
 	}
 
 #if defined( DEBUG_GL )
-	if ( GLVersion( 4, 3 ) ) {
-		glEnable( GL_DEBUG_OUTPUT );
-		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+	if ( XGL_VERSION( 4, 3 ) ) {
+		XGL_CALL( glEnable( GL_DEBUG_OUTPUT ) );
+		XGL_CALL( glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS ) );
 
-		glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
-		glDebugMessageCallback( ( GLDEBUGPROC ) MessageCallback, NULL );
+		XGL_CALL( glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE ) );
+		XGL_CALL( glDebugMessageCallback( ( GLDEBUGPROC ) MessageCallback, NULL ) );
 	}
 #endif
 
 	// Init vertex attributes
-	glGenVertexArrays( 1, VAO );
-	glBindVertexArray( VAO[ 0 ] );
+	XGL_CALL( glGenVertexArrays( 1, VAO ) );
+	XGL_CALL( glBindVertexArray( VAO[ 0 ] ) );
 
 #if 0
 	/* in OpenGL, multisample is automatically enabled per spec */
 	gfx_state.current_capabilities[ PL_GFX_STATE_MULTISAMPLE ] = true;
 #endif
+
+	return PL_RESULT_SUCCESS;
 }
 
 void GLShutdown( void ) {
 #if defined( DEBUG_GL )
-	if ( GLVersion( 4, 3 ) ) {
-		glDisable( GL_DEBUG_OUTPUT );
-		glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+	if ( XGL_VERSION( 4, 3 ) ) {
+		XGL_CALL( glDisable( GL_DEBUG_OUTPUT ) );
+		XGL_CALL( glDisable( GL_DEBUG_OUTPUT_SYNCHRONOUS ) );
 	}
 #endif
 }
@@ -1703,6 +1723,7 @@ PLGDriverImportTable graphicsInterface = {
         .SwizzleTexture = GLSwizzleTexture,
         .SetTextureAnisotropy = GLSetTextureAnisotropy,
         .ActiveTexture = GLActiveTexture,
+        .SetTextureFilter = GLSetTextureFilter,
 
         .CreateCamera = GLCreateCamera,
         .DestroyCamera = GLDestroyCamera,

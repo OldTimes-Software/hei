@@ -46,7 +46,7 @@ static PLPackage *FTactics_PAK_ParseFile( PLFile *file ) {
 
 		if ( flag == 0x80 ) { /* indicates the file is compressed */
 			package->table[ i ].compressedSize = indices[ i ].lflag;
-			package->table[ i ].compressionType = PL_COMPRESSION_ZLIB;
+			package->table[ i ].compressionType = PL_COMPRESSION_DEFLATE;
 
 			if ( !gInterface->FileSeek( file, indices[ i ].offset, PL_SEEK_SET ) ) {
 				continue;

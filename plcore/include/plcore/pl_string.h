@@ -55,8 +55,8 @@ char *pl_strinsert( const char *string, char **buf, size_t *bufSize, size_t *max
 /**
  * http://www.cse.yorku.ca/~oz/hash.html#sdbm
  */
-static inline unsigned long pl_strhash_sdbm( const unsigned char *str ) {
-	unsigned long hash = 0;
+static inline uint32_t pl_strhash_sdbm( const char *str ) {
+	uint32_t hash = 0;
 	int c;
 	while ( ( c = *str++ ) ) {
 		hash = c + ( hash << 6 ) + ( hash << 16 ) - hash;

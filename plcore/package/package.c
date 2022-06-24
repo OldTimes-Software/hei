@@ -40,6 +40,28 @@ static int BlstCbOut( void *how, unsigned char *buf, unsigned int len ) {
 	return 0;
 }
 
+static int Inflate( unsigned char *dst, uint32_t *dstLength, const unsigned char *src, uint32_t srcLength, bool raw ) {
+	mz_stream stream;
+	PL_ZERO_( stream );
+	stream.next_in = src;
+	stream.avail_in = srcLength;
+	stream.next_out = dst;
+	stream.avail_out = *dstLength;
+
+	int status = mz_inflateInit2( &stream, raw ? -MZ_DEFAULT_WINDOW_BITS : MZ_DEFAULT_WINDOW_BITS );
+	if ( status != MZ_OK )
+		return status;
+
+	status = mz_inflate( &stream, MZ_FINISH );
+	if ( status != MZ_STREAM_END ) {
+		mz_inflateEnd( &stream );
+		return ( ( status == MZ_BUF_ERROR ) && ( !stream.avail_in ) ) ? MZ_DATA_ERROR : status;
+	}
+	*dstLength = stream.total_out;
+
+	return mz_inflateEnd( &stream );
+}
+
 /**
  * Generic loader for package files, since this is unlikely to change
  * in most cases.
@@ -60,9 +82,9 @@ static uint8_t *LoadGenericPackageFile( PLFile *fh, PLPackageIndex *pi ) {
 
 	if ( pi->compressionType != PL_COMPRESSION_NONE ) {
 		uint8_t *decompressedPtr = PlMAllocA( pi->fileSize );
-		unsigned long uncompressedLength = ( unsigned long ) pi->fileSize;
-		if ( pi->compressionType == PL_COMPRESSION_ZLIB ) {
-			int status = uncompress( decompressedPtr, &uncompressedLength, dataPtr, ( unsigned long ) pi->compressedSize );
+		uint32_t uncompressedLength = ( uint32_t ) pi->fileSize;
+		if ( pi->compressionType == PL_COMPRESSION_DEFLATE || pi->compressionType == PL_COMPRESSION_GZIP ) {
+			int status = Inflate( decompressedPtr, &uncompressedLength, dataPtr, ( unsigned long ) pi->compressedSize, ( pi->compressionType == PL_COMPRESSION_GZIP ) );
 
 			PlFree( dataPtr );
 			dataPtr = decompressedPtr;
@@ -199,6 +221,10 @@ void PlRegisterPackageLoader( const char *ext, PLPackage *( *LoadFunction )( con
 }
 
 void PlRegisterStandardPackageLoaders( void ) {
+	PlRegisterPackageLoader( "wad", PlLoadIWADPackage_ );
+	PlRegisterPackageLoader( "wad", PlLoadWAD2Package_ );
+	PlRegisterPackageLoader( "pak", PlLoadPAKPackage_ );
+	PlRegisterPackageLoader( "vpk", PlLoadVPKPackage_ );
 	/* hogs of war */
 	PlRegisterPackageLoader( "mad", PlLoadMadPackage );
 	PlRegisterPackageLoader( "mtd", PlLoadMadPackage );

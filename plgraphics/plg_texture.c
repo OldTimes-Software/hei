@@ -13,10 +13,10 @@ static void CheckTMUStates( void ) {
 		return;
 	}
 
-    gfx_state.tmu = ( PLGTextureMappingUnit * ) PlCAllocA( PlgGetMaxTextureUnits(), sizeof( PLGTextureMappingUnit ) );
-    for ( unsigned int i = 0; i < PlgGetMaxTextureUnits(); i++ ) {
-        gfx_state.tmu[ i ].current_envmode = PLG_TEXTUREMODE_REPLACE;
-    }
+	gfx_state.tmu = ( PLGTextureMappingUnit * ) PlCAllocA( PlgGetMaxTextureUnits(), sizeof( PLGTextureMappingUnit ) );
+	for ( unsigned int i = 0; i < PlgGetMaxTextureUnits(); i++ ) {
+		gfx_state.tmu[ i ].current_envmode = PLG_TEXTUREMODE_REPLACE;
+	}
 }
 
 void PlgShutdownTextures( void ) {
@@ -67,7 +67,7 @@ PLGTexture *PlgLoadTextureFromImage( const char *path, PLGTextureFilter filter_m
 	if ( texture != NULL ) {
 		/* store the path, so we can easily reload the image if we need to */
 		strncpy( texture->path, image->path, sizeof( texture->path ) );
-	
+
 		texture->filter = filter_mode;
 
 		PlgUploadTextureImage( texture, image );
@@ -93,27 +93,27 @@ unsigned int PlgGetCurrentTextureUnit( void ) {
 }
 
 static void SetTextureUnit( unsigned int target ) {
-    if ( target == gfx_state.current_textureunit ) {
-        return;
-    }
+	if ( target == gfx_state.current_textureunit ) {
+		return;
+	}
 
-    if ( target > PlgGetMaxTextureUnits() ) {
-        GfxLog( "Attempted to select a texture image unit beyond what's supported by your hardware! (%i)\n",
-                target );
-        return;
-    }
+	if ( target > PlgGetMaxTextureUnits() ) {
+		GfxLog( "Attempted to select a texture image unit beyond what's supported by your hardware! (%i)\n",
+		        target );
+		return;
+	}
 
-    CallGfxFunction( ActiveTexture, target );
+	CallGfxFunction( ActiveTexture, target );
 
-    gfx_state.current_textureunit = target;
+	gfx_state.current_textureunit = target;
 }
 
 void PlgSetTexture( PLGTexture *texture, unsigned int tmu ) {
-    SetTextureUnit( tmu );
+	SetTextureUnit( tmu );
 
 	CallGfxFunction( BindTexture, texture );
 
-    SetTextureUnit( 0 );
+	SetTextureUnit( 0 );
 }
 
 /* todo: move into generic GET handler */
@@ -122,8 +122,8 @@ unsigned int PlgGetMaxTextureAnistropy( void ) {
 		return gfx_state.hw_maxtextureanistropy;
 	}
 
-#if defined (PL_MODE_OPENGL)
-	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, (GLfloat*)&gfx_state.hw_maxtextureanistropy);
+#if defined( PL_MODE_OPENGL )
+	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, ( GLfloat * ) &gfx_state.hw_maxtextureanistropy );
 #else
 	gfx_state.hw_maxtextureanistropy = 1;
 #endif
@@ -134,6 +134,20 @@ unsigned int PlgGetMaxTextureAnistropy( void ) {
 // todo, hook this up with var
 void PlgSetTextureAnisotropy( PLGTexture *texture, unsigned int amount ) {
 	CallGfxFunction( SetTextureAnisotropy, texture, amount );
+}
+
+void PlgSetTextureFilter( PLGTexture *texture, PLGTextureFilter filter ) {
+	if ( texture->filter == filter ) {
+		return;
+	}
+
+	// If the texture doesn't use a mipmap, but the filter mode requested does, ignore it
+	if ( ( texture->flags & PLG_TEXTURE_FLAG_NOMIPS ) && !( ( filter == PLG_TEXTURE_FILTER_NEAREST ) || ( filter == PLG_TEXTURE_FILTER_LINEAR ) ) ) {
+		// todo: report this as an error
+		return;
+	}
+
+	CallGfxFunction( SetTextureFilter, texture, filter );
 }
 
 /* todo: kill this, favor SetTexture */
@@ -170,15 +184,13 @@ void PlgSetTextureEnvironmentMode( PLGTextureEnvironmentMode mode ) {
 	if ( gfx_state.tmu[ PlgGetCurrentTextureUnit() ].current_envmode == mode )
 		return;
 
-#if defined(PL_MODE_OPENGL) && !defined(PL_MODE_OPENGL_CORE)
-	glTexEnvi
-			(
-					GL_TEXTURE_ENV,
-					GL_TEXTURE_ENV_MODE,
-					_plTranslateTextureEnvironmentMode(mode)
-			);
-#elif defined(PL_MODE_OPENGL_CORE)
-	// todo
+#if defined( PL_MODE_OPENGL ) && !defined( PL_MODE_OPENGL_CORE )
+	glTexEnvi(
+	        GL_TEXTURE_ENV,
+	        GL_TEXTURE_ENV_MODE,
+	        _plTranslateTextureEnvironmentMode( mode ) );
+#elif defined( PL_MODE_OPENGL_CORE )
+		// todo
 #endif
 
 	gfx_state.tmu[ PlgGetCurrentTextureUnit() ].current_envmode = mode;
@@ -200,7 +212,7 @@ bool PlgUploadTextureImage( PLGTexture *texture, const PLImage *upload ) {
 	strncpy( texture->path, upload->path, sizeof( texture->path ) );
 
 	if ( texture->flags & PLG_TEXTURE_FLAG_NOMIPS &&
-		( texture->filter != PLG_TEXTURE_FILTER_LINEAR && texture->filter != PLG_TEXTURE_FILTER_NEAREST ) ) {
+	     ( texture->filter != PLG_TEXTURE_FILTER_LINEAR && texture->filter != PLG_TEXTURE_FILTER_NEAREST ) ) {
 		GfxLog( "Invalid filter mode for texture - if specifying nomips, use either linear or nearest!" );
 		texture->filter = PLG_TEXTURE_FILTER_NEAREST;
 	}

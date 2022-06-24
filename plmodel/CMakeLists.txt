@@ -22,13 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
-project(plmodel)
 option(PLM_COMPILE_STATIC "Compile as static library" ON)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 file(GLOB PLM_SOURCE_FILES
         plm.c
+        plm_format_cpj.c
         plm_format_cyclone.c
         plm_format_dpc.c
         plm_format_hdv.c

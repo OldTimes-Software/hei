@@ -159,7 +159,7 @@ PLMModel *PlmLoadObjModel( const char *path ) {
 	return NULL;
 }
 
-bool plWriteObjModel( PLMModel *model, const char *path ) {
+bool PlmWriteObjModel( PLMModel *model, const char *path ) {
 	if ( model == NULL ) {
 		PlReportBasicError( PL_RESULT_INVALID_PARM1 );
 		return false;

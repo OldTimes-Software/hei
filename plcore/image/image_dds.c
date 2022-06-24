@@ -32,7 +32,7 @@ typedef struct DDSPixelFormat {
 	uint32_t bBitMask;
 	uint32_t aBitMask;
 } DDSPixelFormat;
-static_assert( sizeof( DDSPixelFormat ) == DDS_HEADER_PF_SIZE, "Invalid DDSPixelFormat size!" );
+PL_STATIC_ASSERT( sizeof( DDSPixelFormat ) == DDS_HEADER_PF_SIZE, "Invalid DDSPixelFormat size!" );
 
 #define DDS_PF_FLAGS_ALPHAPIXELS 0x1
 #define DDS_PF_FLAGS_ALPHA       0x2
@@ -61,7 +61,7 @@ typedef struct DDSHeader {
 	uint32_t caps4;
 	uint32_t reserved2;
 } DDSHeader;
-static_assert( sizeof( DDSHeader ) == 128, "Invalid DDSHeader size!" );
+PL_STATIC_ASSERT( sizeof( DDSHeader ) == 128, "Invalid DDSHeader size!" );
 
 #define DDS_FLAGS_CAPS        0x1 /* always required */
 #define DDS_FLAGS_HEIGHT      0x2 /* always required */

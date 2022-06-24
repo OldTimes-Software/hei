@@ -133,3 +133,22 @@ void PlIterateLinkedList( PLLinkedList *linkedList, PLLinkedListIteratorCallback
 		}
 	}
 }
+
+void **PlArrayFromLinkedList( PLLinkedList *list, unsigned int *numElements )
+{
+	unsigned int i = 0;
+
+	// Allocate container for all the elements
+	*numElements = PlGetNumLinkedListNodes( list );
+	void **elements = PlMAllocA( *numElements * sizeof( void * ) );
+
+	// Now fillerup
+	PLLinkedListNode *node = PlGetFirstNode( list );
+	while ( node != NULL )
+	{
+		void *data = PlGetLinkedListNodeUserData( node );
+		elements[ i++ ] = data;
+		node = PlGetNextLinkedListNode( node );
+	}
+	return elements;
+}

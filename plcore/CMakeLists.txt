@@ -40,9 +40,13 @@ file(
         pl_library.c
         pl_linkedlist.c
         polygon.c
+
         pl_math_colour.c
         pl_math_matrix.c
+        pl_math_quaternion.c
+        pl_math_random.c
         pl_math_vector.c
+
         pl_physics.c
         pl_timer.c
 

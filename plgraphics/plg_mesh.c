@@ -76,6 +76,23 @@ void PlgGenerateMeshTangentBasis( PLGMesh *mesh ) {
 	PlgGenerateTangentBasis( mesh->vertices, mesh->num_verts, mesh->indices, mesh->num_triangles );
 }
 
+void PlgGenerateVertexTangentBasis( PLGVertex *vertices, unsigned int numVertices ) {
+	for ( unsigned int i = 0; i < numVertices; ++i ) {
+		PLGVertex *v = &vertices[ i ];
+
+		PLVector3 up, forward;
+		PlAnglesAxes( v->normal, NULL, &up, &forward );
+
+		v->tangent = PlVector3CrossProduct( v->normal, forward );
+		if ( PlVector3Length( v->tangent ) == 0 ) {
+			v->tangent = PlVector3CrossProduct( v->normal, up );
+		}
+
+		v->tangent = PlNormalizeVector3( v->tangent );
+		v->bitangent = PlNormalizeVector3( PlVector3CrossProduct( v->normal, v->tangent ) );
+	}
+}
+
 /* based on http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/#computing-the-tangents-and-bitangents */
 void PlgGenerateTangentBasis( PLGVertex *vertices, unsigned int numVertices, const unsigned int *indices, unsigned int numTriangles ) {
 	for ( unsigned int i = 0; i < numTriangles; i++, indices += 3 ) {
@@ -93,8 +110,9 @@ void PlgGenerateTangentBasis( PLGVertex *vertices, unsigned int numVertices, con
 
 		/* now actually compute the tangent and bitangent */
 		float r = 1.0f / ( deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x );
+
 		PLVector3 tangent = PlScaleVector3F( PlSubtractVector3( PlScaleVector3F( deltaPos1, deltaUV2.y ), PlScaleVector3F( deltaPos2, deltaUV1.y ) ), r );
-		PLVector3 bitangent = PlScaleVector3F( PlSubtractVector3( PlScaleVector3F( deltaPos2, deltaUV1.x ), PlScaleVector3F( deltaPos1, deltaUV2.x ) ), r );
+		PLVector3 bitangent = PlScaleVector3F( PlAddVector3( PlScaleVector3F( deltaPos1, -deltaUV2.x ), PlScaleVector3F( deltaPos2, deltaUV1.x ) ), r );
 
 		a->tangent = b->tangent = c->tangent = tangent;
 		a->bitangent = b->bitangent = c->bitangent = bitangent;
@@ -168,7 +186,9 @@ PLGMesh *PlgCreateMeshInit( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, un
 
 	mesh->maxVertices = numVerts;
 	mesh->vertices = ( PLGVertex * ) PlCAllocA( mesh->maxVertices, sizeof( PLGVertex ) );
-	if ( vertices != NULL ) {
+
+	// If the vertices passed in aren't null, copy them into our vertex list
+	if ( vertices != NULL ) { //-V1051
 		memcpy( mesh->vertices, vertices, sizeof( PLGVertex ) * numVerts );
 		mesh->num_verts = numVerts;
 	}
@@ -176,6 +196,20 @@ PLGMesh *PlgCreateMeshInit( PLGMeshPrimitive primitive, PLGMeshDrawMode mode, un
 	mesh->isDirty = true;
 
 	CallGfxFunction( CreateMesh, mesh );
+
+	return mesh;
+}
+
+PLGMesh *PlgCreateMeshRectangle( float x, float y, float w, float h, PLColour colour ) {
+	PLGMesh *mesh = PlgCreateMesh( PLG_MESH_TRIANGLE_STRIP, PLG_DRAW_DYNAMIC, 0, 4 );
+	if ( mesh == NULL ) {
+		return NULL;
+	}
+
+	PlgAddMeshVertex( mesh, PLVector3( x, y, 0.0f ), pl_vecOrigin3, colour, PLVector2( 0.0f, 0.0f ) );
+	PlgAddMeshVertex( mesh, PLVector3( x, y + h, 0.0f ), pl_vecOrigin3, colour, PLVector2( 0.0f, 1.0f ) );
+	PlgAddMeshVertex( mesh, PLVector3( x + w, y, 0.0f ), pl_vecOrigin3, colour, PLVector2( 1.0f, 0.0f ) );
+	PlgAddMeshVertex( mesh, PLVector3( x + w, y + h, 0.0f ), pl_vecOrigin3, colour, PLVector2( 1.0f, 1.0f ) );
 
 	return mesh;
 }
@@ -195,15 +229,16 @@ void PlgDestroyMesh( PLGMesh *mesh ) {
 void PlgClearMesh( PLGMesh *mesh ) {
 	PlgClearMeshVertices( mesh );
 	PlgClearMeshTriangles( mesh );
-	mesh->isDirty = true;
 }
 
 void PlgClearMeshVertices( PLGMesh *mesh ) {
 	mesh->num_verts = 0;
+	mesh->isDirty = true;
 }
 
 void PlgClearMeshTriangles( PLGMesh *mesh ) {
 	mesh->num_triangles = mesh->num_indices = 0;
+	mesh->isDirty = true;
 }
 
 void PlgScaleMesh( PLGMesh *mesh, PLVector3 scale ) {

@@ -105,6 +105,7 @@ PL_EXTERN void PlParseConsoleString( const char *string );
 
 extern void PlSetupLogOutput( const char *path );
 extern int PlAddLogLevel( const char *prefix, PLColour colour, bool status );
+extern void PlRemoveLogLevel( int id );
 extern void PlSetLogLevelStatus( int id, bool status );
 extern void PlLogMessage( int id, const char *msg, ... );
 

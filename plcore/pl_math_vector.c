@@ -11,6 +11,34 @@ PL_DLL const PLVector3 pl_vecOrigin3 = { 0.0f, 0.0f, 0.0f };
 PL_DLL const PLVector4 pl_vecOrigin4 = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 /****************************************
+ * Transform
+ ****************************************/
+
+PLVector4 PlTransformVector4( const PLVector4 *v, const PLMatrix4 *m ) {
+	return PlVector4(
+	        /* x */
+	        ( v->x * m->pl_m4pos( 0, 0 ) ) +
+	                ( v->y * m->pl_m4pos( 1, 0 ) ) +
+	                ( v->z * m->pl_m4pos( 2, 0 ) ) +
+	                ( v->w * m->pl_m4pos( 3, 0 ) ),
+	        /* y */
+	        ( v->x * m->pl_m4pos( 0, 1 ) ) +
+	                ( v->y * m->pl_m4pos( 1, 1 ) ) +
+	                ( v->z * m->pl_m4pos( 2, 1 ) ) +
+	                ( v->w * m->pl_m4pos( 3, 1 ) ),
+	        /* y */
+	        ( v->x * m->pl_m4pos( 0, 2 ) ) +
+	                ( v->y * m->pl_m4pos( 1, 2 ) ) +
+	                ( v->z * m->pl_m4pos( 2, 2 ) ) +
+	                ( v->w * m->pl_m4pos( 3, 2 ) ),
+	        /* w */
+	        ( v->x * m->pl_m4pos( 0, 3 ) ) +
+	                ( v->y * m->pl_m4pos( 1, 3 ) ) +
+	                ( v->z * m->pl_m4pos( 2, 3 ) ) +
+	                ( v->w * m->pl_m4pos( 3, 3 ) ) );
+}
+
+/****************************************
  * Addition
  ****************************************/
 
@@ -159,9 +187,9 @@ float PlGetPlaneDotProduct( const PLVector4 *plane, const PLVector3 *vector ) {
 
 PLVector3 PlVector3CrossProduct( PLVector3 v, PLVector3 v2 ) {
 	return PlVector3(
-			v.y * v2.z - v.z * v2.y,
-			v.z * v2.x - v.x * v2.z,
-			v.x * v2.y - v.y * v2.x );
+	        v.y * v2.z - v.z * v2.y,
+	        v.z * v2.x - v.x * v2.z,
+	        v.x * v2.y - v.y * v2.x );
 }
 
 /****************************************
@@ -170,9 +198,9 @@ PLVector3 PlVector3CrossProduct( PLVector3 v, PLVector3 v2 ) {
 
 PLVector3 PlVector3Min( PLVector3 v, PLVector3 v2 ) {
 	return PlVector3(
-			v.x < v2.x ? v.x : v2.x,
-			v.y < v2.y ? v.y : v2.y,
-			v.z < v2.z ? v.z : v2.z );
+	        v.x < v2.x ? v.x : v2.x,
+	        v.y < v2.y ? v.y : v2.y,
+	        v.z < v2.z ? v.z : v2.z );
 }
 
 /****************************************
@@ -181,9 +209,9 @@ PLVector3 PlVector3Min( PLVector3 v, PLVector3 v2 ) {
 
 PLVector3 PlVector3Max( PLVector3 v, PLVector3 v2 ) {
 	return PlVector3(
-			v.x > v2.x ? v.x : v2.x,
-			v.y > v2.y ? v.y : v2.y,
-			v.z > v2.z ? v.z : v2.z );
+	        v.x > v2.x ? v.x : v2.x,
+	        v.y > v2.y ? v.y : v2.y,
+	        v.z > v2.z ? v.z : v2.z );
 }
 
 /****************************************
@@ -274,17 +302,28 @@ PLVector4 PlClampVector4( const PLVector4 *v, float min, float max ) {
 
 const char *PlPrintVector2( const PLVector2 *v, PLVariableType format ) {
 	static char s[ 64 ];
-	if ( format == pl_int_var ) snprintf( s, 32, "%i %i", ( int ) v->x, ( int ) v->y );
+	if ( format == pl_int_var )
+		snprintf( s, sizeof( s ), "%i %i", ( int ) v->x, ( int ) v->y );
 	else
-		snprintf( s, 64, "%f %f", v->x, v->y );
+		snprintf( s, sizeof( s ), "%f %f", v->x, v->y );
 	return s;
 }
 
 const char *PlPrintVector3( const PLVector3 *v, PLVariableType format ) {
 	static char s[ 64 ];
-	if ( format == pl_int_var ) snprintf( s, 32, "%i %i %i", ( int ) v->x, ( int ) v->y, ( int ) v->z );
+	if ( format == pl_int_var )
+		snprintf( s, sizeof( s ), "%i %i %i", ( int ) v->x, ( int ) v->y, ( int ) v->z );
 	else
-		snprintf( s, 64, "%f %f %f", v->x, v->y, v->z );
+		snprintf( s, sizeof( s ), "%f %f %f", v->x, v->y, v->z );
+	return s;
+}
+
+const char *PlPrintVector4( const PLVector4 *v, PLVariableType format ) {
+	static char s[ 64 ];
+	if ( format == pl_int_var )
+		snprintf( s, sizeof( s ), "%i %i %i %i", ( int ) v->x, ( int ) v->y, ( int ) v->z, ( int ) v->w );
+	else
+		snprintf( s, sizeof( s ), "%f %f %f %f", v->x, v->y, v->z, v->w );
 	return s;
 }
 

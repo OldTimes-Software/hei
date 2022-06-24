@@ -34,8 +34,10 @@ support.
 #include <stdarg.h>
 #include <stdlib.h>
 
+#ifndef __cplusplus
 #ifdef PL_INCLUDE_STD_BOOL
 #include <stdbool.h>
+#endif
 #endif
 
 #include <stdint.h>
@@ -77,6 +79,9 @@ typedef char PLPath[ PL_SYSTEM_MAX_PATH ];
 
 #define PL_ZERO( DATA, SIZE ) memset( ( DATA ), 0, ( SIZE ) )
 #define PL_ZERO_( DATA )      memset( &( DATA ), 0, sizeof( ( DATA ) ) )
+
+#define PL_MIN( A, B ) ( (A) < (B) ? (A) : (B) )
+#define PL_MAX( A, B ) ( (A) > (B) ? (A) : (B) )
 
 #define PL_STRINGIFY( num ) #num
 #define PL_TOSTRING( A ) PL_STRINGIFY( A )

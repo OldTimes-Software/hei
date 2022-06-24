@@ -48,6 +48,10 @@ extern PL_DLL const PLVector2 pl_vecOrigin2;
 extern PL_DLL const PLVector3 pl_vecOrigin3;
 extern PL_DLL const PLVector4 pl_vecOrigin4;
 
+typedef struct PLMatrix4 PLMatrix4;
+
+PLVector4 PlTransformVector4( const PLVector4 *v, const PLMatrix4 *m );
+
 PLVector2 PlAddVector2( PLVector2 v, PLVector2 v2 );
 PLVector3 PlAddVector3( PLVector3 v, PLVector3 v2 );
 PLVector3 PlAddVector3F( PLVector3 v, float f );
@@ -96,6 +100,7 @@ PLVector4 PlClampVector4( const PLVector4 *v, float min, float max );
 
 const char *PlPrintVector2( const PLVector2 *v, PLVariableType format );
 const char *PlPrintVector3( const PLVector3 *v, PLVariableType format );
+const char *PlPrintVector4( const PLVector4 *v, PLVariableType format );
 
 PLVector2 PlComputeLineNormal( const PLVector2 *x, const PLVector2 *y );
 

@@ -52,4 +52,6 @@ PLLinkedList *PlGetLinkedListNodeContainer( PLLinkedListNode *node );
 typedef void ( *PLLinkedListIteratorCallback )( void *userData, bool *breakEarly );
 void PlIterateLinkedList( PLLinkedList *linkedList, PLLinkedListIteratorCallback callbackHandler );
 
+void **PlArrayFromLinkedList( PLLinkedList *list, unsigned int *numElements );
+
 PL_EXTERN_C_END

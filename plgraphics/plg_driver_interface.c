@@ -58,35 +58,36 @@ bool PlgRegisterDriver( const char *path ) {
 	PLGDriverInitializationFunction InitializeDriver;
 	PLGDriverQueryFunction RegisterDriver = ( PLGDriverQueryFunction ) PlGetLibraryProcedure( library, PLG_DRIVER_QUERY_FUNCTION );
 	if ( RegisterDriver != NULL ) {
-        /* now fetch the driver description */
-        description = RegisterDriver();
-        if ( description != NULL ) {
+		/* now fetch the driver description */
+		description = RegisterDriver();
+		if ( description == NULL ) {
+			GfxLog( "Failed to fetch description from library: \"%s\"!\n", path );
+			PlUnloadLibrary( library );
+			return false;
+		}
 #if !defined( NDEBUG )
-			GfxLog( "\"%s\" :\n"
-			        " identifier = \"%s\"\n"
-			        " description = \"%s\"\n"
-			        " driver version = %d.%d.%d\n",
-			        path,
-			        description->identifier,
-			        description->description,
-			        description->driverVersion[ 0 ],
-			        description->driverVersion[ 1 ],
-			        description->driverVersion[ 2 ] );
+		GfxLog( "\"%s\" :\n"
+		        " identifier = \"%s\"\n"
+		        " description = \"%s\"\n"
+		        " driver version = %d.%d.%d\n",
+		        path,
+		        description->identifier,
+		        description->description,
+		        description->driverVersion[ 0 ],
+		        description->driverVersion[ 1 ],
+		        description->driverVersion[ 2 ] );
 #endif
-            if ( description->coreInterfaceVersion[ 0 ] != PL_PLUGIN_INTERFACE_VERSION_MAJOR ) {
-                PlReportErrorF( PL_RESULT_UNSUPPORTED, "unsupported core interface version" );
-            } else if ( description->graphicsInterfaceVersion[ 0 ] != PLG_INTERFACE_VERSION_MAJOR ) {
-                PlReportErrorF( PL_RESULT_UNSUPPORTED, "unsupported graphics interface version" );
-            }
-        } else {
-            PlReportErrorF( PL_RESULT_FAIL, "failed to fetch driver description" );
-        }
+		if ( description->coreInterfaceVersion[ 0 ] != PL_PLUGIN_INTERFACE_VERSION_MAJOR ) {
+			PlReportErrorF( PL_RESULT_UNSUPPORTED, "unsupported core interface version" );
+		} else if ( description->graphicsInterfaceVersion[ 0 ] != PLG_INTERFACE_VERSION_MAJOR ) {
+			PlReportErrorF( PL_RESULT_UNSUPPORTED, "unsupported graphics interface version" );
+		}
 
 		InitializeDriver = ( PLGDriverInitializationFunction ) PlGetLibraryProcedure( library, PLG_DRIVER_INIT_FUNCTION );
 	}
 
 	if ( RegisterDriver == NULL || InitializeDriver == NULL || PlGetFunctionResult() != PL_RESULT_SUCCESS ) {
-        GfxLog( "Failed to load library!\nPL: %s\n", PlGetError() );
+		GfxLog( "Failed to load library!\nPL: %s\n", PlGetError() );
 		PlUnloadLibrary( library );
 		return false;
 	}
@@ -177,18 +178,25 @@ PLFunctionResult PlgSetDriver( const char *mode ) {
 	}
 
 	gfx_state.interface = interface;
+	if ( gfx_state.interface->Initialize == NULL ) {
+		PlReportErrorF( PL_RESULT_GRAPHICSINIT, "no initialization function bound for graphics interface \"%s\"", mode );
+		return PL_RESULT_GRAPHICSINIT;
+	}
 
-	CallGfxFunction( Initialize );
+	PLFunctionResult result;
+	if ( ( result = gfx_state.interface->Initialize() ) != PL_RESULT_SUCCESS ) {
+		return result;
+	}
 
 	GfxLog( "Mode \"%s\" initialized!\n", mode );
 
 	PlFree( gfx_state.tmu );
 
 	unsigned int numUnits = PlgGetMaxTextureUnits();
-    gfx_state.tmu = ( PLGTextureMappingUnit * ) PlCAllocA( numUnits, sizeof( PLGTextureMappingUnit ) );
-    for ( unsigned int i = 0; i < numUnits; i++ ) {
-        gfx_state.tmu[ i ].current_envmode = PLG_TEXTUREMODE_REPLACE;
-    }
+	gfx_state.tmu = ( PLGTextureMappingUnit * ) PlCAllocA( numUnits, sizeof( PLGTextureMappingUnit ) );
+	for ( unsigned int i = 0; i < numUnits; i++ ) {
+		gfx_state.tmu[ i ].current_envmode = PLG_TEXTUREMODE_REPLACE;
+	}
 
 	return PL_RESULT_SUCCESS;
 }

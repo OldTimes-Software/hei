@@ -8,6 +8,12 @@
 
 #include <plcore/pl_math.h>
 
+PLVector2 PlConvertWorldToScreen( const PLVector3 *position, const PLMatrix4 *viewProjMatrix ) {
+	PLVector4 posw = PlVector4( position->x, position->y, position->z, 1.0f );
+	PLVector4 ppos = PlTransformVector4( &posw, viewProjMatrix );
+	return PlVector2( ppos.x / ppos.w, ppos.y / ppos.w );
+}
+
 /****************************************
  ****************************************/
  
@@ -132,6 +138,11 @@ void PlTranslateMatrix( PLVector3 vector ) {
 void PlScaleMatrix( PLVector3 scale ) {
 	PLMatrix4 *curStack = PlGetMatrix( curMatrixMode );
 	*curStack = PlScaleMatrix4( *curStack, scale );
+}
+
+void PlInverseMatrix( void ) {
+	PLMatrix4 *curStack = PlGetMatrix( curMatrixMode );
+	*curStack = PlInverseMatrix4( *curStack );
 }
 
 void PlPushMatrix( void ) {

@@ -25,15 +25,17 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org>
 ]]
 
-project( pcmd )
+project(pcmd)
 
-add_executable( pcmd
+add_executable(pcmd
         main.c
+
+        ../../extras/angel/angel_dat.c
+        ../../extras/angel/angel_tex.c
 
         ../../extras/core/core_package_clu.c
         ../../extras/core/core_loader_hgt.c
-
-        ../../extras/doom_wad.c
+        ../../extras/aitd/aitd_pak.c
         ../../extras/eradicator_rid.c
         ../../extras/ftactics_pak.c
         #../../extras/galleon_pkg.c
@@ -44,4 +46,4 @@ add_executable( pcmd
         ../../extras/sentient_vsr.c
         )
 
-target_link_libraries( pcmd plcore )
+target_link_libraries(pcmd plcore plgraphics plmodel)

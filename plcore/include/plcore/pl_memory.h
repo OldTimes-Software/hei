@@ -26,14 +26,18 @@ void *PlMAlloc( size_t size, bool abortOnFail );
 void *PlReAlloc( void *ptr, size_t newSize, bool abortOnFail );
 void PlFree( void *ptr );
 
-#define PlCAllocA( NUM, SIZE ) PlCAlloc( ( NUM ), ( SIZE ), true )
-#define PlMAllocA( SIZE ) PlMAlloc( ( SIZE ), true )
-#define PlReAllocA( PTR, NEWSIZE ) PlReAlloc( ( PTR ), ( NEWSIZE ), true )
-
 extern size_t PlGetTotalAllocatedMemory( void );
 
 extern uint64_t PlGetTotalSystemMemory( void );
 extern uint64_t PlGetTotalAvailableSystemMemory( void );
 extern uint64_t PlGetCurrentMemoryUsage( void );
+
+#define PlCAllocA( NUM, SIZE )     PlCAlloc( ( NUM ), ( SIZE ), true )
+#define PlMAllocA( SIZE )          PlMAlloc( ( SIZE ), true )
+#define PlReAllocA( PTR, NEWSIZE ) PlReAlloc( ( PTR ), ( NEWSIZE ), true )
+
+#define PL_NEW( TYPE )       PlMAllocA( sizeof( TYPE ) )
+#define PL_NEW_( TYPE, NUM ) PlCAllocA( NUM, sizeof( TYPE ) )
+#define PL_DELETE( PTR )     PlFree( PTR )
 
 PL_EXTERN_C_END

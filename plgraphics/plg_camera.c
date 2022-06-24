@@ -8,12 +8,12 @@
 
 #include "plg_private.h"
 
-#define CAMERA_DEFAULT_WIDTH 640
+#define CAMERA_DEFAULT_WIDTH  640
 #define CAMERA_DEFAULT_HEIGHT 480
 #define CAMERA_DEFAULT_BOUNDS 5
-#define CAMERA_DEFAULT_FOV 75.f
-#define CAMERA_DEFAULT_NEAR 0.1f
-#define CAMERA_DEFAULT_FAR 1000.f
+#define CAMERA_DEFAULT_FOV    75.f
+#define CAMERA_DEFAULT_NEAR   0.1f
+#define CAMERA_DEFAULT_FAR    1000.f
 
 PLGCamera *PlgCreateCamera( void ) {
 	PLGCamera *camera = ( PLGCamera * ) PlCAlloc( 1, sizeof( PLGCamera ), false );
@@ -141,6 +141,17 @@ static void SetupCameraPerspective( PLGCamera *camera ) {
 	camera->internal.view = PlLookAt( camera->position, PlAddVector3( camera->position, camera->forward ), camera->up );
 }
 
+/***** TEMPORARY CRAP START *****/
+/* this whole API needs to be revisited... */
+
+void PlgSetViewMatrix( const PLMatrix4 *viewMatrix ) { gfx_state.view_matrix = *viewMatrix; }
+PLMatrix4 PlgGetViewMatrix( void ) { return gfx_state.view_matrix; }
+
+void PlgSetProjectionMatrix( const PLMatrix4 *projMatrix ) { gfx_state.projection_matrix = *projMatrix; }
+PLMatrix4 PlgGetProjectionMatrix( void ) { return gfx_state.projection_matrix; }
+
+/***** TEMPORARY CRAP END 	*****/
+
 void PlgSetupCamera( PLGCamera *camera ) {
 	plAssert( camera );
 
@@ -171,8 +182,8 @@ void PlgSetupCamera( PLGCamera *camera ) {
 	gfx_state.current_viewport = &camera->viewport;
 
 	// Copy camera matrices
-	gfx_state.view_matrix = camera->internal.view;
-	gfx_state.projection_matrix = camera->internal.proj;
+	PlgSetViewMatrix( &camera->internal.view );
+	PlgSetProjectionMatrix( &camera->internal.proj );
 
 	CallGfxFunction( SetupCamera, camera );
 }

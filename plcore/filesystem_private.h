@@ -26,8 +26,8 @@
 
 typedef struct PLFile {
 	char path[ PL_SYSTEM_MAX_PATH ];
-	uint8_t *data;
-	uint8_t *pos;
+	void *data;
+	void *pos;
 	size_t size;
 	time_t timeStamp;
 	void *fptr;

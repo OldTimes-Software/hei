@@ -73,13 +73,13 @@ typedef struct PLPluginExportTable {
 	bool ( *IsEndOfFile )( const PLFile *file );
 
 	const char *( *GetFilePath )( const PLFile *file );
-	const uint8_t *( *GetFileData )( const PLFile *file );
+	const void *( *GetFileData )( const PLFile *file );
 	size_t ( *GetFileSize )( const PLFile *file );
 	PLFileOffset ( *GetFileOffset )( const PLFile *file );
 
 	size_t ( *ReadFile )( PLFile *file, void *destination, size_t size, size_t count );
 
-	char ( *ReadInt8 )( PLFile *file, bool *status );
+	int8_t ( *ReadInt8 )( PLFile *file, bool *status );
 	int16_t ( *ReadInt16 )( PLFile *file, bool bigEndian, bool *status );
 	int32_t ( *ReadInt32 )( PLFile *file, bool bigEndian, bool *status );
 	int64_t ( *ReadInt64 )( PLFile *file, bool bigEndian, bool *status );

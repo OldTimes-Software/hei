@@ -43,10 +43,8 @@ PL_PACKED_STRUCT_END( HDVVertex )
 
 PLMModel *PlmLoadHdvModel( const char *path ) {
 	PLFile *file = PlOpenFile( path, false );
-	if ( file == NULL ) {
-		PlReportBasicError( PL_RESULT_FILEREAD );
+	if ( file == NULL )
 		return NULL;
-	}
 
 	HDVHeader header;
 	if ( PlReadFile( file, &header, sizeof( HDVHeader ), 1 ) != 1 ) {

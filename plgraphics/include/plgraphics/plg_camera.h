@@ -80,17 +80,26 @@ typedef struct PLGCamera {
 
 PL_EXTERN_C
 
-PL_EXTERN PLGCamera *PlgCreateCamera( void );
-PL_EXTERN void PlgDestroyCamera( PLGCamera *camera );
+PLGCamera *PlgCreateCamera( void );
+void PlgDestroyCamera( PLGCamera *camera );
 
-PL_EXTERN void PlgSetCameraFieldOfView( PLGCamera *camera, float fieldOfView );
-PL_EXTERN float PlgGetCameraFieldOfView( const PLGCamera *camera );
+void PlgSetCameraFieldOfView( PLGCamera *camera, float fieldOfView );
+float PlgGetCameraFieldOfView( const PLGCamera *camera );
 
-PL_EXTERN void PlgSetupCamera( PLGCamera *camera );
+void PlgSetupCamera( PLGCamera *camera );
 
-PL_EXTERN bool PlgIsBoxInsideView( const PLGCamera *camera, const PLCollisionAABB *bounds );
-PL_EXTERN bool PlgIsSphereInsideView( const PLGCamera *camera, const PLCollisionSphere *sphere );
+bool PlgIsBoxInsideView( const PLGCamera *camera, const PLCollisionAABB *bounds );
+bool PlgIsSphereInsideView( const PLGCamera *camera, const PLCollisionSphere *sphere );
 
-PL_EXTERN const PLGViewport *PlgGetCurrentViewport( void );
+const PLGViewport *PlgGetCurrentViewport( void );
+
+/***** TEMPORARY CRAP START *****/
+
+void PlgSetViewMatrix( const PLMatrix4 *viewMatrix );
+PLMatrix4 PlgGetViewMatrix( void );
+void PlgSetProjectionMatrix( const PLMatrix4 *projMatrix );
+PLMatrix4 PlgGetProjectionMatrix( void );
+
+/***** TEMPORARY CRAP END 	*****/
 
 PL_EXTERN_C_END

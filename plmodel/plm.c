@@ -32,7 +32,7 @@ typedef struct ModelLoader {
 } ModelLoader;
 
 #define MAX_OBJECT_INTERFACES 512
-static ModelLoader model_interfaces[MAX_OBJECT_INTERFACES];
+static ModelLoader model_interfaces[ MAX_OBJECT_INTERFACES ];
 static unsigned int num_model_loaders = 0;
 
 int LOG_LEVEL_MODEL = -1;
@@ -42,15 +42,15 @@ void PlmInitialize( void ) {
 
 	LOG_LEVEL_MODEL = PlAddLogLevel( "plmodel", PL_COLOUR_BLUE,
 #if !defined( NDEBUG )
-                                     true
+	                                 true
 #else
-			false
+	                                 false
 #endif
 	);
 }
 
-#define StaticModelData( a ) ( a )->internal.static_data
-#define VertexModelData( a ) ( a )->internal.vertex_data
+#define StaticModelData( a )   ( a )->internal.static_data
+#define VertexModelData( a )   ( a )->internal.vertex_data
 #define SkeletalModelData( a ) ( a )->internal.skeletal_data
 
 void PlmGenerateModelNormals( PLMModel *model, bool perFace ) {
@@ -86,9 +86,26 @@ bool PlmWriteModel( const char *path, PLMModel *model, PLMModelOutputType type )
 		return false;
 	}
 
+	if ( type == PLM_MODEL_OUTPUT_DEFAULT ) {
+		const char *ext = PlGetFileExtension( path );
+		if ( ext == NULL ) {
+			PlReportErrorF( PL_RESULT_FILEPATH, "no extension for file" );
+			return false;
+		}
+
+		if ( strcmp( ext, "smd" ) == 0 ) {
+			return PlmWriteSmdModel( model, path );
+		} else if ( strcmp( ext, "obj" ) == 0 ) {
+			return PlmWriteObjModel( model, path );
+		}
+
+		PlReportErrorF( PL_RESULT_UNSUPPORTED, "unsupported output type for %s (%u)", path, type );
+		return false;
+	}
+
 	switch ( type ) {
 		case PLM_MODEL_OUTPUT_SMD:
-			return plWriteSmdModel( model, path );
+			return PlmWriteSmdModel( model, path );
 		default:
 			PlReportErrorF( PL_RESULT_UNSUPPORTED, "unsupported output type for %s (%u)", path, type );
 			return false;
@@ -113,10 +130,11 @@ void PlmRegisterStandardModelLoaders( unsigned int flags ) {
 		PLMModel *( *LoadFunction )( const char *path );
 	} SModelLoader;
 	static const SModelLoader loaderList[] = {
-			{ PLM_MODEL_FILEFORMAT_CYCLONE, "mdl", PlmLoadRequiemModel },
-			{ PLM_MODEL_FILEFORMAT_HDV,     "hdv", PlmLoadHdvModel },
-			{ PLM_MODEL_FILEFORMAT_U3D,     "3d",  PlmLoadU3DModel },
-			{ PLM_MODEL_FILEFORMAT_OBJ,     "obj", PlmLoadObjModel },
+	        { PLM_MODEL_FILEFORMAT_CYCLONE, "mdl", PlmLoadRequiemModel },
+	        { PLM_MODEL_FILEFORMAT_HDV, "hdv", PlmLoadHdvModel },
+	        { PLM_MODEL_FILEFORMAT_U3D, "3d", PlmLoadU3DModel },
+	        { PLM_MODEL_FILEFORMAT_OBJ, "obj", PlmLoadObjModel },
+	        { PLM_MODEL_FILEFORMAT_CPJ, "cpj", PlmLoadCpjModel },
 	};
 
 	for ( unsigned int i = 0; i < PL_ARRAY_ELEMENTS( loaderList ); ++i ) {
@@ -140,19 +158,19 @@ PLMModel *PlmLoadModel( const char *path ) {
 	}
 
 	const char *extension = PlGetFileExtension( path );
+	size_t ext_len = strlen( extension );
 	for ( unsigned int i = 0; i < num_model_loaders; ++i ) {
 		if ( model_interfaces[ i ].LoadFunction == NULL ) {
 			break;
 		}
 
 		if ( !PL_INVALID_STRING( model_interfaces[ i ].ext ) ) {
-			if ( pl_strncasecmp( extension, model_interfaces[ i ].ext, sizeof( model_interfaces[ i ].ext ) ) == 0 ) {
+			if ( pl_strcasecmp( extension, model_interfaces[ i ].ext ) == 0 ) {
 				PLMModel *model = model_interfaces[ i ].LoadFunction( path );
 				if ( model != NULL ) {
 					const char *name = PlGetFileName( path );
 					if ( !PL_INVALID_STRING( name ) ) {
 						size_t nme_len = strlen( name );
-						size_t ext_len = strlen( extension );
 						strncpy( model->name, name, nme_len - ( ext_len + 1 ) );
 					} else {
 						snprintf( model->name, sizeof( model->name ), "null" );
@@ -203,28 +221,23 @@ PLMModel *PlmCreateStaticModel( PLGMesh **meshes, unsigned int numMeshes ) {
 	return CreateModel( PLM_MODELTYPE_STATIC, meshes, numMeshes );
 }
 
-static PLMModel *CreateSkeletalModel( PLMModel *model, PLMModelBone *skeleton, uint32_t num_bones, uint32_t root_index ) {
-	if ( model == NULL ) {
-		return NULL;
-	}
+static PLMModel *CreateSkeletalModel( PLMModel *model, PLMBone *bones, unsigned int numBones, PLMBoneWeight *weights, unsigned int numWeights ) {
+	model->internal.skeletal_data.bones = bones;
+	model->internal.skeletal_data.numBones = numBones;
+	model->internal.skeletal_data.weights = weights;
+	model->internal.skeletal_data.numBoneWeights = numWeights;
 
-	if ( skeleton != NULL ) {
-		model->internal.skeletal_data.bones = skeleton;
-		model->internal.skeletal_data.num_bones = num_bones;
-	}
-
-	model->internal.skeletal_data.root_index = root_index;
+	model->internal.skeletal_data.rootIndex = 0;
 
 	return model;
 }
 
-PLMModel *PlmCreateBasicSkeletalModel( PLGMesh *mesh, PLMModelBone *skeleton, uint32_t num_bones, uint32_t root_index ) {
-	return CreateSkeletalModel( CreateBasicModel( PLM_MODELTYPE_SKELETAL, mesh ), skeleton, num_bones, root_index );
+PLMModel *PlmCreateBasicSkeletalModel( PLGMesh *mesh, PLMBone *bones, unsigned int numBones, PLMBoneWeight *weights, unsigned int numWeights ) {
+	return CreateSkeletalModel( CreateBasicModel( PLM_MODELTYPE_SKELETAL, mesh ), bones, numBones, weights, numWeights );
 }
 
-PLMModel *PlmCreateSkeletalModel( PLGMesh **meshes, unsigned int numMeshes, PLMModelBone *skeleton, uint32_t num_bones,
-                                  uint32_t root_index ) {
-	return CreateSkeletalModel( CreateModel( PLM_MODELTYPE_SKELETAL, meshes, numMeshes ), skeleton, num_bones, root_index );
+PLMModel *PlmCreateSkeletalModel( PLGMesh **meshes, unsigned int numMeshes, PLMBone *bones, unsigned int numBones, PLMBoneWeight *weights, unsigned int numWeights ) {
+	return CreateSkeletalModel( CreateModel( PLM_MODELTYPE_SKELETAL, meshes, numMeshes ), bones, numBones, weights, numWeights );
 }
 
 void PlmDestroyModel( PLMModel *model ) {

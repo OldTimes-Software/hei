@@ -52,7 +52,7 @@ PLFunctionResult PlgInitializeGraphics( void ) {
 	return PL_RESULT_SUCCESS;
 }
 
-void PlgShutdownTextures( void );// platform_graphics_texture
+void PlgShutdownTextures( void );    // platform_graphics_texture
 void PlgClearInternalMeshes( void ); /* plg_draw.c */
 
 void PlgShutdownGraphics( void ) {
@@ -99,10 +99,6 @@ PLGFrameBuffer *PlgCreateFrameBuffer( unsigned int w, unsigned int h, unsigned i
 	}
 
 	PLGFrameBuffer *buffer = ( PLGFrameBuffer * ) PlMAllocA( sizeof( PLGFrameBuffer ) );
-	if ( !buffer ) {
-		return NULL;
-	}
-
 	buffer->width = w;
 	buffer->height = h;
 	buffer->flags = flags;
@@ -132,8 +128,23 @@ void PlgGetFrameBufferResolution( const PLGFrameBuffer *buffer, unsigned int *wi
 }
 
 void PlgBindFrameBuffer( PLGFrameBuffer *buffer, PLGFrameBufferObjectTarget target_binding ) {
+	if ( ( buffer == gfx_state.frameBufferTarget ) && ( target_binding == gfx_state.frameBufferTargetMode ) ) {
+		return;
+	}
+
 	//NOTE: NULL is valid for *buffer, to bind the SDL window default backbuffer
-	CallGfxFunction( BindFrameBuffer, buffer, target_binding )
+	CallGfxFunction( BindFrameBuffer, buffer, target_binding );
+
+	gfx_state.frameBufferTarget = buffer;
+	gfx_state.frameBufferTargetMode = target_binding;
+}
+
+PLGFrameBuffer *PlgGetCurrentFrameBufferTarget( PLGFrameBufferObjectTarget *currentMode ) {
+	if ( currentMode != NULL ) {
+		*currentMode = gfx_state.frameBufferTargetMode;
+	}
+
+	return gfx_state.frameBufferTarget;
 }
 
 void PlgBlitFrameBuffers( PLGFrameBuffer *src_buffer, unsigned int src_w, unsigned int src_h, PLGFrameBuffer *dst_buffer, unsigned int dst_w, unsigned int dst_h, bool linear ) {
@@ -220,7 +231,7 @@ PLresult plUploadTextureData(PLTexture *texture, const PLTextureInfo *upload) {
 
     _plSetActiveTexture(texture);
 
-#if defined( PL_MODE_OPENGL ) || defined( VL_MODE_OPENGL_CORE )
+#	if defined( PL_MODE_OPENGL ) || defined( VL_MODE_OPENGL_CORE )
     unsigned int storage = _plTranslateTextureStorageFormat(upload->storage_type);
     unsigned int format = _plTranslateTextureFormat(upload->format);
 
@@ -262,9 +273,9 @@ PLresult plUploadTextureData(PLTexture *texture, const PLTextureInfo *upload) {
     if (plIsGraphicsStateEnabled(PL_CAPABILITY_GENERATEMIPMAP) && (levels > 1)) {
         glGenerateMipmap(GL_TEXTURE_2D);
     }
-#elif defined( VL_MODE_GLIDE )
-#elif defined( VL_MODE_DIRECT3D )
-#endif
+#	elif defined( VL_MODE_GLIDE )
+#	elif defined( VL_MODE_DIRECT3D )
+#	endif
 
     return PL_RESULT_SUCCESS;
 }

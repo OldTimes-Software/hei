@@ -633,7 +633,7 @@ void PlRegisterPlugins( const char *pluginDir ) {
 
 	Print( "Scanning for plugins in \"%s\"\n", pluginDir );
 
-	PlScanDirectory( pluginDir, PL_SYSTEM_LIBRARY_EXTENSION + 1, RegisterScannedPlugin, false, NULL );
+	PlScanDirectory( pluginDir, &PL_SYSTEM_LIBRARY_EXTENSION[ 1 ], RegisterScannedPlugin, false, NULL );
 
 	Print( "Done, %d plugins loaded.\n", numPlugins );
 }

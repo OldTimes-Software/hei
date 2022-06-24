@@ -13,10 +13,6 @@
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-*.smod
-
 # Compiled Static libraries
 *.lai
 *.la
@@ -48,3 +44,6 @@
 **/cmake-build-debug/
 
 plcore/3rdparty/glew-2.2.0/glew.pc
+
+# PVS
+*.PVS-Studio.*

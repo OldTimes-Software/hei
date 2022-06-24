@@ -332,7 +332,7 @@ int PlgGetShaderUniformSlot( PLGShaderProgram *program, const char *name ) {
 }
 
 PLGShaderUniformType PlgGetShaderUniformType( const PLGShaderProgram *program, int slot ) {
-	if ( slot == -1 || slot >= program->num_uniforms ) {
+	if ( slot < 0 || ( unsigned int ) slot >= program->num_uniforms ) {
 		return PLG_INVALID_UNIFORM;
 	}
 

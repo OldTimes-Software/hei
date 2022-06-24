@@ -8,6 +8,18 @@
 
 #include "plg_private.h"
 
+
+/****************************************
+ * Immediate-mode style API
+ * Possibly consider moving these into
+ * some higher-level library?
+ ****************************************/
+
+static PLGMesh *currentDynamicMesh;
+static unsigned int currentVertex;
+
+static unsigned int currentTriangle;
+
 #define MAXIMUM_STORAGE 4096
 
 static PLGMesh *meshes[ PLG_NUM_PRIMITIVES ];
@@ -19,6 +31,42 @@ static PLGMesh *GetInternalMesh( PLGMeshPrimitive primitive ) {
 	PlgClearMesh( meshes[ primitive ] );
 	return meshes[ primitive ];
 }
+
+void PlgImmBegin( PLGMeshPrimitive primitive ) {
+	currentDynamicMesh = GetInternalMesh( primitive );
+	PlgClearMesh( currentDynamicMesh );
+	currentVertex = 0;
+}
+
+unsigned int PlgImmPushVertex( float x, float y, float z ) {
+	return ( currentVertex = PlgAddMeshVertex( currentDynamicMesh, PlVector3( x, y, z ), pl_vecOrigin3, PL_COLOUR_WHITE, pl_vecOrigin2 ) );
+}
+
+void PlgImmNormal( float x, float y, float z ) {
+	PlgSetMeshVertexNormal( currentDynamicMesh, currentVertex, PlVector3( x, y, z ) );
+}
+
+void PlgImmColour( uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
+	PlgSetMeshVertexColour( currentDynamicMesh, currentVertex, PlColourU8( r, g, b, a ) );
+}
+
+void PlgImmTextureCoord( float s, float t ) {
+	PlgSetMeshVertexST( currentDynamicMesh, currentVertex, s, t );
+}
+
+unsigned int PlgImmPushTriangle( unsigned int x, unsigned int y, unsigned int z ) {
+	return ( currentTriangle = PlgAddMeshTriangle( currentDynamicMesh, x, y, z ) );
+}
+
+void PlgImmDraw( void ) {
+	PlgSetShaderUniformValue( PlgGetCurrentShaderProgram(), "pl_model", PlGetMatrix( PL_MODELVIEW_MATRIX ), true );
+
+	PlgUploadMesh( currentDynamicMesh );
+	PlgDrawMesh( currentDynamicMesh );
+}
+
+/****************************************
+ ****************************************/
 
 void PlgInitializeInternalMeshes( void ) {
 	memset( meshes, 0, sizeof( meshes ) );
@@ -64,71 +112,63 @@ void PlgDrawEllipse( unsigned int segments, PLVector2 position, float w, float h
 	PlPopMatrix();
 }
 
-static void SetupRectangleMesh( PLGMesh *mesh, float x, float y, float w, float h, PLColour colour ) {
-	PlgAddMeshVertex( mesh, PLVector3( x, y, 0.0f ), pl_vecOrigin3, colour, PLVector2( 0.0f, 0.0f ) );
-	PlgAddMeshVertex( mesh, PLVector3( x, y + h, 0.0f ), pl_vecOrigin3, colour, PLVector2( 0.0f, 1.0f ) );
-	PlgAddMeshVertex( mesh, PLVector3( x + w, y, 0.0f ), pl_vecOrigin3, colour, PLVector2( 1.0f, 0.0f ) );
-	PlgAddMeshVertex( mesh, PLVector3( x + w, y + h, 0.0f ), pl_vecOrigin3, colour, PLVector2( 1.0f, 1.0f ) );
+static void SetupRectangleMesh( float x, float y, float w, float h, PLColour colour ) {
+	PlgImmPushVertex( x, y, 0.0f );
+	PlgImmTextureCoord( 0.0f, 0.0f );
+	PlgImmColour( colour.r, colour.g, colour.b, colour.a );
+
+	PlgImmPushVertex( x, y + h, 0.0f );
+	PlgImmTextureCoord( 0.0f, 1.0f );
+	PlgImmColour( colour.r, colour.g, colour.b, colour.a );
+
+	PlgImmPushVertex( x + w, y, 0.0f );
+	PlgImmTextureCoord( 1.0f, 0.0f );
+	PlgImmColour( colour.r, colour.g, colour.b, colour.a );
+
+	PlgImmPushVertex( x + w, y + h, 0.0f );
+	PlgImmTextureCoord( 1.0f, 1.0f );
+	PlgImmColour( colour.r, colour.g, colour.b, colour.a );
 }
 
-void PlgDrawTexturedRectangle( const PLMatrix4 *transform, float x, float y, float w, float h, PLGTexture *texture ) {
+void PlgDrawTexturedRectangle( float x, float y, float w, float h, PLGTexture *texture ) {
 	PlgSetTexture( texture, 0 );
 
-	PlgDrawRectangle( transform, x, y, w, h, PLColour( 255, 255, 255, 255 ) );
+	PlgDrawRectangle( x, y, w, h, PLColour( 255, 255, 255, 255 ) );
 
 	PlgSetTexture( NULL, 0 );
 }
 
-PLGMesh *PlgCreateMeshRectangle( float x, float y, float w, float h, PLColour colour ) {
-	PLGMesh *mesh = PlgCreateMesh( PLG_MESH_TRIANGLE_STRIP, PLG_DRAW_DYNAMIC, 0, 4 );
-	if ( mesh == NULL ) {
-		return NULL;
-	}
+void PlgDrawRectangle( float x, float y, float w, float h, PLColour colour ) {
+	PlgImmBegin( PLG_MESH_TRIANGLE_STRIP );
 
-	SetupRectangleMesh( mesh, x, y, w, h, colour );
+	SetupRectangleMesh( x, y, w, h, colour );
 
-	return mesh;
-}
-
-void PlgDrawRectangle( const PLMatrix4 *transform, float x, float y, float w, float h, PLColour colour ) {
-	PLGMesh *mesh = GetInternalMesh( PLG_MESH_TRIANGLE_STRIP );
-	if ( mesh == NULL ) {
-		return;
-	}
-
-	SetupRectangleMesh( mesh, x, y, w, h, colour );
-
-	if ( transform == NULL ) {
-		transform = PlGetMatrix( PL_MODELVIEW_MATRIX );
-	}
-
-	PlgSetShaderUniformValue( PlgGetCurrentShaderProgram(), "pl_model", transform, true );
-
-	PlgUploadMesh( mesh );
-	PlgDrawMesh( mesh );
+	PlgImmDraw();
 }
 
 void PlgDrawFilledRectangle( const PLRectangle2D *rectangle ) {
-	PLGMesh *mesh = GetInternalMesh( PLG_MESH_TRIANGLE_STRIP );
+	PlgImmBegin( PLG_MESH_TRIANGLE_STRIP );
 
-	SetupRectangleMesh( mesh, rectangle->xy.x, rectangle->xy.y, rectangle->wh.x, rectangle->wh.y, PLColour( 255, 255, 255, 255 ) );
+	SetupRectangleMesh( rectangle->xy.x, rectangle->xy.y, rectangle->wh.x, rectangle->wh.y, PLColour( 255, 255, 255, 255 ) );
 
-	PlgSetMeshVertexColour( mesh, 0, rectangle->ul );
-	PlgSetMeshVertexColour( mesh, 1, rectangle->ll );
-	PlgSetMeshVertexColour( mesh, 2, rectangle->ur );
-	PlgSetMeshVertexColour( mesh, 3, rectangle->lr );
+	int x = rectangle->xy.x;
+	int y = rectangle->xy.y;
+	int w = rectangle->wh.x;
+	int h = rectangle->wh.y;
 
-	PlMatrixMode( PL_MODELVIEW_MATRIX );
-	PlPushMatrix();
+	PlgImmPushVertex( x, y, 0.0f );
+	PlgImmColour( rectangle->ul.r, rectangle->ul.g, rectangle->ul.b, rectangle->ul.a );
 
-	PlLoadIdentityMatrix();
+	PlgImmPushVertex( x, y + h, 0.0f );
+	PlgImmColour( rectangle->ll.r, rectangle->ll.g, rectangle->ll.b, rectangle->ll.a );
 
-	PlgSetShaderUniformValue( PlgGetCurrentShaderProgram(), "pl_model", PlGetMatrix( PL_MODELVIEW_MATRIX ), false );
+	PlgImmPushVertex( x + w, y, 0.0f );
+	PlgImmColour( rectangle->ur.r, rectangle->ur.g, rectangle->ur.b, rectangle->ur.a );
 
-	PlgUploadMesh( mesh );
-	PlgDrawMesh( mesh );
+	PlgImmPushVertex( x + w, y + h, 0.0f );
+	PlgImmColour( rectangle->lr.r, rectangle->lr.g, rectangle->lr.b, rectangle->lr.a );
 
-	PlPopMatrix();
+	PlgImmDraw();
 }
 
 void PlgDrawTexturedQuad( const PLVector3 *ul, const PLVector3 *ur, const PLVector3 *ll, const PLVector3 *lr, float hScale, float vScale, PLGTexture *texture ) {
@@ -187,28 +227,26 @@ void PlgDrawTriangle( int x, int y, unsigned int w, unsigned int h ) {
 }
 
 void PlgDrawLines( const PLVector3 *points, unsigned int numPoints, PLColour colour ) {
-	PLGMesh *mesh = GetInternalMesh( PLG_MESH_LINES );
+	PlgImmBegin( PLG_MESH_LINES );
 
 	for ( unsigned int i = 0; i < numPoints; ++i ) {
-		PlgAddMeshVertex( mesh, points[ i ], pl_vecOrigin3, colour, pl_vecOrigin2 );
+		PlgImmPushVertex( points[ i ].x, points[ i ].y, points[ i ].z );
+		PlgImmColour( colour.r, colour.g, colour.b, colour.a );
 	}
 
-	PlgSetShaderUniformValue( PlgGetCurrentShaderProgram(), "pl_model", PlGetMatrix( PL_MODELVIEW_MATRIX ), true );
-
-	PlgUploadMesh( mesh );
-	PlgDrawMesh( mesh );
+	PlgImmDraw();
 }
 
 void PlgDrawLine( PLMatrix4 transform, PLVector3 startPos, PLColour startColour, PLVector3 endPos, PLColour endColour ) {
-	PLGMesh *mesh = GetInternalMesh( PLG_MESH_LINES );
+	PlgImmBegin( PLG_MESH_LINES );
 
-	PlgAddMeshVertex( mesh, startPos, pl_vecOrigin3, startColour, pl_vecOrigin2 );
-	PlgAddMeshVertex( mesh, endPos, pl_vecOrigin3, endColour, pl_vecOrigin2 );
+	PlgImmPushVertex( startPos.x, startPos.y, startPos.z );
+	PlgImmColour( startColour.r, startColour.g, startColour.b, startColour.a );
 
-	PlgSetShaderUniformValue( PlgGetCurrentShaderProgram(), "pl_model", &transform, true );
+	PlgImmPushVertex( endPos.x, endPos.y, endPos.z );
+	PlgImmColour( endColour.r, endColour.g, endColour.b, endColour.a );
 
-	PlgUploadMesh( mesh );
-	PlgDrawMesh( mesh );
+	PlgImmDraw();
 }
 
 void PlgDrawSimpleLine( PLMatrix4 transform, PLVector3 startPos, PLVector3 endPos, PLColour colour ) {
@@ -216,39 +254,57 @@ void PlgDrawSimpleLine( PLMatrix4 transform, PLVector3 startPos, PLVector3 endPo
 }
 
 void PlgDrawGrid( int x, int y, int w, int h, unsigned int gridSize ) {
-	PLGMesh *mesh = GetInternalMesh( PLG_MESH_LINES );
+	PlgImmBegin( PLG_MESH_LINES );
 
 	int c = 0, r = 0;
 	for ( ; r < h + 1; r += ( int ) gridSize ) {
-		PlgAddMeshVertex( mesh, PLVector3( x, y + r, 0.0f ), pl_vecOrigin3, PLColour( 0, 0, 255, 255 ), pl_vecOrigin2 );
-		PlgAddMeshVertex( mesh, PLVector3( x + w, r + y, 0 ), pl_vecOrigin3, PLColour( 0, 0, 255, 255 ), pl_vecOrigin2 );
+		PlgImmPushVertex( x, y + r, 0.0f );
+		PlgImmColour( 0, 0, 255, 255 );
+		PlgImmPushVertex( x + w, r + y, 0.0f );
+		PlgImmColour( 0, 0, 255, 255 );
 		for ( ; c < w + 1; c += ( int ) gridSize ) {
-			PlgAddMeshVertex( mesh, PLVector3( c + x, y, 0 ), pl_vecOrigin3, PLColour( 0, 0, 255, 255 ), pl_vecOrigin2 );
-			PlgAddMeshVertex( mesh, PLVector3( c + x, y + h, 0 ), pl_vecOrigin3, PLColour( 0, 0, 255, 255 ), pl_vecOrigin2 );
+			PlgImmPushVertex( c + x, y, 0.0f );
+			PlgImmColour( 0, 0, 255, 255 );
+			PlgImmPushVertex( c + x, y + h, 0.0f );
+			PlgImmColour( 0, 0, 255, 255 );
 		}
 	}
 
-	PlgSetShaderUniformValue( PlgGetCurrentShaderProgram(), "pl_model", PlGetMatrix( PL_MODELVIEW_MATRIX ), true );
+	PlgImmDraw();
+}
 
-	PlgUploadMesh( mesh );
-	PlgDrawMesh( mesh );
+void PlgDrawVertexNormals( const PLGVertex *vertices, unsigned int numVertices )
+{
+	PlgImmBegin( PLG_MESH_LINES );
+
+	for ( unsigned int i = 0; i < numVertices; ++i ) {
+		PLVector3 linePos, lineEndPos;
+
+		linePos = vertices[ i ].position;
+		PlgImmPushVertex( linePos.x, linePos.y, linePos.z );
+		PlgImmColour( 255, 0, 255, 255 );
+
+		lineEndPos = PlAddVector3( linePos, PlScaleVector3F( vertices[ i ].normal, 4.0f ) );
+		PlgImmPushVertex( lineEndPos.x, lineEndPos.y, lineEndPos.z );
+		PlgImmColour( 255, 0, 255, 255 );
+
+		linePos = vertices[ i ].position;
+		PlgImmPushVertex( linePos.x, linePos.y, linePos.z );
+		PlgImmColour( 0, 255, 255, 255 );
+
+		lineEndPos = PlAddVector3( linePos, PlScaleVector3F( vertices[ i ].tangent, 4.0f ) );
+		PlgImmPushVertex( lineEndPos.x, lineEndPos.y, lineEndPos.z );
+		PlgImmColour( 0, 255, 255, 255 );
+	}
+
+	PlgImmDraw();
 }
 
 /**
  * Draw lines at each vertex point representing the direction of the normal.
  */
 void PlgDrawMeshNormals( const PLGMesh *mesh ) {
-	PLGMesh *linesMesh = GetInternalMesh( PLG_MESH_LINES );
-
-	for ( unsigned int i = 0; i < mesh->num_verts; ++i ) {
-		PLVector3 linePos = mesh->vertices[ i ].position;
-		PLVector3 lineEndPos = PlAddVector3( linePos, PlScaleVector3F( mesh->vertices[ i ].normal, 64.0f ) );
-		PlgAddMeshVertex( linesMesh, linePos, pl_vecOrigin3, PLColour( 255, 0, 0, 255 ), pl_vecOrigin2 );
-		PlgAddMeshVertex( linesMesh, lineEndPos, pl_vecOrigin3, PLColour( 0, 255, 0, 255 ), pl_vecOrigin2 );
-	}
-
-	PlgUploadMesh( linesMesh );
-	PlgDrawMesh( linesMesh );
+	PlgDrawVertexNormals( mesh->vertices, mesh->num_verts );
 }
 
 void PlgDrawPixel( int x, int y, PLColour colour ) {

@@ -15,6 +15,8 @@
 #define PL_SYSTEM_OS_WINDOWS 0
 #define PL_SYSTEM_OS_LINUX   1
 #define PL_SYSTEM_OS_MACOS   2
+#define PL_SYSTEM_OS_FREEBSD 3
+#define PL_SYSTEM_OS_SOLARIS 4
 
 #if defined( _WIN32 )
 #	define PL_SYSTEM_NAME              "WINDOWS"

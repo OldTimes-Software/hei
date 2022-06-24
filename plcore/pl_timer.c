@@ -122,7 +122,10 @@ static bool GetTime( struct timespec *ts ) {
 		ts->tv_nsec -= POW10_9;
 	}
 #else
-	clock_gettime( CLOCK_MONOTONIC, ts );
+	if ( clock_gettime( CLOCK_MONOTONIC, ts ) != 0 ) {
+		PlReportBasicError( PL_RESULT_FAIL );
+		return false;
+	}
 #endif
 	return true;
 }

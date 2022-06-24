@@ -42,15 +42,7 @@ void PlRegisterConsoleCommand( const char *name, void ( *CallbackFunction )( uns
 
 	// Deal with resizing the array dynamically...
 	if ( ( 1 + _pl_num_commands ) > _pl_commands_size ) {
-		PLConsoleCommand **old_mem = _pl_commands;
-		_pl_commands = ( PLConsoleCommand ** ) realloc( _pl_commands, ( _pl_commands_size += 128 ) * sizeof( PLConsoleCommand ) );
-		if ( !_pl_commands ) {
-			PlReportErrorF( PL_RESULT_MEMORY_ALLOCATION, "failed to allocate %d bytes",
-			                _pl_commands_size * sizeof( PLConsoleCommand ) );
-			_pl_commands = old_mem;
-			_pl_commands_size -= 128;
-			return;
-		}
+		_pl_commands = ( PLConsoleCommand ** ) PlReAllocA( _pl_commands, ( _pl_commands_size += 128 ) * sizeof( PLConsoleCommand ) );
 	}
 
 	if ( _pl_num_commands < _pl_commands_size ) {
@@ -104,28 +96,13 @@ PLConsoleVariable *PlRegisterConsoleVariable( const char *name, const char *def,
 
 	// Deal with resizing the array dynamically...
 	if ( ( 1 + _pl_num_variables ) > _pl_variables_size ) {
-		PLConsoleVariable **old_mem = _pl_variables;
-		_pl_variables = ( PLConsoleVariable ** ) realloc( _pl_variables, ( _pl_variables_size += 128 ) * sizeof( PLConsoleVariable ) );
-		if ( _pl_variables == NULL ) {
-			PlReportErrorF( PL_RESULT_MEMORY_ALLOCATION, "failed to allocate %d bytes",
-			                _pl_variables_size * sizeof( PLConsoleVariable ) );
-			_pl_variables = old_mem;
-			_pl_variables_size -= 128;
-			return NULL;
-		}
+		_pl_variables = ( PLConsoleVariable ** ) PlReAllocA( _pl_variables, ( _pl_variables_size += 128 ) * sizeof( PLConsoleVariable ) );
 	}
 
 	PLConsoleVariable *out = NULL;
 	if ( _pl_num_variables < _pl_variables_size ) {
 		_pl_variables[ _pl_num_variables ] = ( PLConsoleVariable * ) PlMAllocA( sizeof( PLConsoleVariable ) );
-		if ( _pl_variables[ _pl_num_variables ] == NULL ) {
-			PlReportErrorF( PL_RESULT_MEMORY_ALLOCATION, "failed to allocate memory for ConsoleCommand, %d",
-			                sizeof( PLConsoleVariable ) );
-			return NULL;
-		}
-
 		out = _pl_variables[ _pl_num_variables ];
-		memset( out, 0, sizeof( PLConsoleVariable ) );
 		out->type = type;
 		snprintf( out->var, sizeof( out->var ), "%s", name );
 		snprintf( out->default_value, sizeof( out->default_value ), "%s", def );
@@ -573,6 +550,21 @@ int PlAddLogLevel( const char *prefix, PLColour colour, bool status ) {
 	l->var = PlRegisterConsoleVariable( var, status ? "1" : "0", pl_bool_var, NULL, "Console output level." );
 
 	return i;
+}
+
+/**
+ * Removes the specified log levels.
+ * Keep in mind that this will not remove any
+ * console variables generated from adding those
+ * levels.
+ */
+void PlRemoveLogLevel( int id ) {
+	LogLevel *l = GetLogLevelForId( id );
+	if ( l == NULL ) {
+		return;
+	}
+
+	PL_ZERO( l, sizeof( LogLevel ) );
 }
 
 void PlSetLogLevelStatus( int id, bool status ) {
